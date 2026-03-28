@@ -5,7 +5,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>心率悬浮</string>
+    <string>俄罗斯粑粑块</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -40,7 +40,7 @@
         </dict>
     </dict>
     <key>UILaunchStoryboardName</key>
-    <string>LaunchScreen</string>
+    <string></string>
     <key>UIRequiredDeviceCapabilities</key>
     <array>
         <string>armv7</string>
@@ -60,14 +60,12 @@
     </array>
     <key>UIBackgroundModes</key>
     <array>
-        <string>bluetooth-central</string>
         <string>audio</string>
     </array>
-    <key>NSBluetoothAlwaysUsageDescription</key>
-    <string>需要蓝牙权限连接心率监测设备</string>
-    <key>NSBluetoothPeripheralUsageDescription</key>
-    <string>需要蓝牙权限连接心率监测设备</string>
-    <key>NSLocalNetworkUsageDescription</key>
-    <string>需要本地网络权限提供心率数据HTTP接口</string>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
 </dict>
 </plist>

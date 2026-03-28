@@ -1,28 +1,28 @@
-name: HeartFloat
+name: RussianPoopBlock
 options:
-  bundleIdPrefix: com.heartfloat
+  bundleIdPrefix: com.poopblock
   deploymentTarget:
-    iOS: "14.0"
-  xcodeVersion: "15.0"
-  developmentRegion: zh_CN
+    iOS: "13.0"
+  xcodeVersion: "14.0"
+  developmentRegion: en
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
 settings:
   base:
-    MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.0.1"
+    CURRENT_PROJECT_VERSION: "2"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
-    SWIFT_VERSION: "5.9"
+    SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "1,2"
     PROJECT_FORMAT_VERSION: 56
+    CLANG_CXX_LANGUAGE_STANDARD: gnu++17
     CLANG_ENABLE_MODULES: YES
     SWIFT_EMIT_LOC_STRINGS: YES
-    ENABLE_BITCODE: NO
 
 targets:
-  HeartFloat:
+  RussianPoopBlock:
     type: application
     platform: iOS
     sources:
@@ -33,20 +33,21 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: Resources/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.heartfloat.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.poopblock.russian
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_PREVIEWS: YES
         GENERATE_INFOPLIST_FILE: NO
     info:
       path: Resources/Info.plist
       properties:
-        CFBundleName: HeartFloat
-        CFBundleDisplayName: 心率悬浮
-        CFBundleIdentifier: com.heartfloat.app
-        CFBundleVersion: "1"
-        CFBundleShortVersionString: "1.0"
+        CFBundleName: 俄罗斯粑粑块
+        CFBundleDisplayName: 俄罗斯粑粑块
+        CFBundleIdentifier: com.poopblock.russian
+        CFBundleVersion: "2"
+        CFBundleShortVersionString: "1.0.1"
         CFBundlePackageType: APPL
-        CFBundleExecutable: HeartFloat
-        UILaunchStoryboardName: LaunchScreen
+        CFBundleExecutable: RussianPoopBlock
+        UILaunchStoryboardName: ""
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
           UISceneConfigurations:
@@ -61,9 +62,7 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIRequiresFullScreen: true
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
         UIBackgroundModes:
-          - bluetooth-central
           - audio
-        NSBluetoothAlwaysUsageDescription: 需要蓝牙权限连接心率监测设备
-        NSBluetoothPeripheralUsageDescription: 需要蓝牙权限连接心率监测设备
-        NSLocalNetworkUsageDescription: 需要本地网络权限提供心率数据HTTP接口
