@@ -453,7 +453,7 @@ class HttpServer {
             return
         }
         
-        listen(socket, 5)
+        Darwin.listen(socket, 5)
         
         var clientAddr = sockaddr_in()
         var clientAddrLen = socklen_t(MemoryLayout<sockaddr_in>.size)

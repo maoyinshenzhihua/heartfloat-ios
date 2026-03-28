@@ -12,7 +12,7 @@ on:
 
 env:
   XCODE_VERSION: '15.0'
-  IOS_DEPLOYMENT_TARGET: '14.0'
+  IOS_DEPLOYMENT_TARGET: '15.0'
   BUNDLE_ID: com.heartfloat.app
   SCHEME: HeartFloat
 
