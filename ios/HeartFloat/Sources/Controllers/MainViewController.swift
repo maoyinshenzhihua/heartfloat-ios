@@ -23,7 +23,8 @@ class MainViewController: UIViewController {
     
     private var pipController: AVPictureInPictureController?
     private var pipView: HeartRatePIPView?
-    private var pipVideoSource: PIPVideoSource?
+    private var pipPlayer: AVPlayer?
+    private var pipPlayerLayer: AVPlayerLayer?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -196,19 +197,94 @@ class MainViewController: UIViewController {
     }
     
     private func setupPIP() {
-        if AVPictureInPictureController.isPictureInPictureSupported() {
-            pipVideoSource = PIPVideoSource()
-            pipView = HeartRatePIPView()
-            
-            if let pipView = pipView, let pipVideoSource = pipVideoSource {
-                pipController = AVPictureInPictureController(contentSource: .init(playerLayer: pipVideoSource.playerLayer))
-                pipController?.delegate = self
-                pipController?.canStartPictureInPictureAutomaticallyFromInline = true
+        if #available(iOS 15.0, *) {
+            if AVPictureInPictureController.isPictureInPictureSupported() {
+                let pipView = HeartRatePIPView()
+                pipPlayerLayer = AVPlayerLayer(player: nil)
+                pipPlayerLayer?.videoGravity = .resizeAspectFill
+                pipPlayerLayer?.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+                
+                if let playerLayer = pipPlayerLayer {
+                    pipController = AVPictureInPictureController(contentSource: .init(playerLayer: playerLayer))
+                    pipController?.delegate = self
+                    if #available(iOS 14.2, *) {
+                        pipController?.canStartPictureInPictureAutomaticallyFromInline = true
+                    }
+                    pipPlayer = AVPlayer()
+                    pipPlayerLayer?.player = pipPlayer
+                    
+                    generateSilentAudioForPIP()
+                }
+            } else {
+                pipButton.isEnabled = false
+                pipButton.alpha = 0.5
+                appendLog("画中画不支持此设备")
             }
         } else {
             pipButton.isEnabled = false
             pipButton.alpha = 0.5
+            appendLog("需要iOS 15.0或更高版本")
         }
+    }
+    
+    private func generateSilentAudioForPIP() {
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try audioSession.setActive(true)
+        } catch {
+            appendLog("音频会话设置失败")
+        }
+        
+        guard let url = Bundle.main.url(forResource: "silence", withExtension: "mp3") else {
+            let tempDir = FileManager.default.temporaryDirectory
+            let silencePath = tempDir.appendingPathComponent("silence.mp3")
+            
+            if !FileManager.default.fileExists(atPath: silencePath.path) {
+                let silentData = createSilentAudioData()
+                try? silentData.write(to: silencePath)
+            }
+            
+            let playerItem = AVPlayerItem(url: silencePath)
+            pipPlayer?.replaceCurrentItem(with: playerItem)
+            pipPlayer?.play()
+            return
+        }
+        
+        let playerItem = AVPlayerItem(url: url)
+        pipPlayer?.replaceCurrentItem(with: playerItem)
+        pipPlayer?.play()
+    }
+    
+    private func createSilentAudioData() -> Data {
+        let sampleRate: Double = 44100
+        let duration: Double = 1.0
+        let numSamples = Int(sampleRate * duration)
+        
+        var header = Data()
+        header.append(contentsOf: [0x52, 0x49, 0x46, 0x46])
+        var fileSize = UInt32(36 + numSamples * 2)
+        header.append(Data(bytes: &fileSize, count: 4))
+        header.append(contentsOf: [0x57, 0x41, 0x56, 0x45])
+        header.append(contentsOf: [0x66, 0x6D, 0x74, 0x20])
+        header.append(contentsOf: [0x10, 0x00, 0x00, 0x00])
+        header.append(contentsOf: [0x01, 0x00])
+        header.append(contentsOf: [0x01, 0x00])
+        var sampRate = UInt32(sampleRate)
+        header.append(Data(bytes: &sampRate, count: 4))
+        var byteRate = UInt32(sampleRate * 2)
+        header.append(Data(bytes: &byteRate, count: 4))
+        header.append(contentsOf: [0x02, 0x00])
+        header.append(contentsOf: [0x10, 0x00])
+        header.append(contentsOf: [0x64, 0x61, 0x74, 0x61])
+        var dataSize = UInt32(numSamples * 2)
+        header.append(Data(bytes: &dataSize, count: 4))
+        
+        var audioData = header
+        let silentSamples = Data(repeating: 0x00, count: numSamples * 2)
+        audioData.append(silentSamples)
+        
+        return audioData
     }
     
     @objc private func connectButtonTapped() {
@@ -230,12 +306,15 @@ class MainViewController: UIViewController {
     }
     
     @objc private func pipButtonTapped() {
-        if let pipController = pipController {
-            if pipController.isPictureInPictureActive {
-                pipController.stopPictureInPicture()
-            } else {
-                pipController.startPictureInPicture()
-            }
+        guard let pipController = pipController else {
+            appendLog("画中画不可用")
+            return
+        }
+        
+        if pipController.isPictureInPictureActive {
+            pipController.stopPictureInPicture()
+        } else {
+            pipController.startPictureInPicture()
         }
     }
     
@@ -285,10 +364,8 @@ class MainViewController: UIViewController {
             
             if heartRate > 0 {
                 self.heartRateLabel.text = "\(heartRate)"
-                self.pipView?.updateHeartRate(heartRate)
             } else {
                 self.heartRateLabel.text = "--"
-                self.pipView?.updateHeartRate(0)
             }
         }
     }
@@ -354,6 +431,10 @@ extension MainViewController: AVPictureInPictureControllerDelegate {
     func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
         appendLog("画中画启动失败: \(error.localizedDescription)")
     }
+    
+    func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
+        completionHandler(true)
+    }
 }
 
 class HeartRatePIPView {
@@ -399,15 +480,5 @@ class HeartRatePIPView {
         DispatchQueue.main.async {
             self.heartRateLabel.text = heartRate > 0 ? "\(heartRate)" : "--"
         }
-    }
-}
-
-class PIPVideoSource {
-    let playerLayer = AVPlayerLayer()
-    private let player = AVPlayer()
-    
-    init() {
-        playerLayer.player = player
-        playerLayer.videoGravity = .resizeAspect
     }
 }
