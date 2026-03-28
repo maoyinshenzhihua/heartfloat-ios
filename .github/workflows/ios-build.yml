@@ -54,6 +54,8 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             BUILD_DIR=build \
             build
+          ls -la build/Release-iphoneos/ 2>/dev/null || echo "Checking alternative location..."
+          find . -name "*.app" -type d 2>/dev/null | head -5
 
       - name: Create IPA
         working-directory: ./ios/HeartFloat
