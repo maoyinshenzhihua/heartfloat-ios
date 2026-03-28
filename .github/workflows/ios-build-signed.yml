@@ -36,10 +36,12 @@ jobs:
           xcodegen generate
 
       - name: Fix project format
+        working-directory: ./ios/HeartFloat
         run: |
           find . -name "*.pbxproj" -exec sed -i '' 's/77/56/g' {} \;
 
       - name: Build
+        working-directory: ./ios/HeartFloat
         run: |
           xcodebuild -project HeartFloat.xcodeproj \
             -scheme ${{ env.SCHEME }} \
@@ -51,18 +53,19 @@ jobs:
             build
 
       - name: Create IPA
+        working-directory: ./ios/HeartFloat
         run: |
           mkdir -p output
-          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "*.app" -type d 2>/dev/null | grep -v "PlugIns" | head -1)
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "HeartFloat.app" -type d 2>/dev/null | grep -v "PlugIns" | head -1)
           cp -r "$APP_PATH" ./output/
           cd ./output
           mkdir -p Payload
-          cp -r *.app Payload/
+          cp -r HeartFloat.app Payload/
           zip -r ./HeartFloat-${{ github.run_number }}.ipa Payload
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: HeartFloat-iOS-${{ github.run_number }}
-          path: output/HeartFloat-${{ github.run_number }}.ipa
+          path: ios/HeartFloat/output/HeartFloat-${{ github.run_number }}.ipa
           retention-days: 30
