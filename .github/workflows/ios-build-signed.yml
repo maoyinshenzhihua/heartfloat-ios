@@ -34,6 +34,7 @@ jobs:
             brew install xcodegen
           fi
           xcodegen generate
+          ls -la
 
       - name: Fix project format
         working-directory: ./ios/HeartFloat
@@ -52,20 +53,39 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             build
+          echo "=== Build Products ==="
+          ls -la ./DerivedData/Build/Products/
+          ls -la ./DerivedData/Build/Products/Release-iphoneos/
 
       - name: Create IPA
         working-directory: ./ios/HeartFloat
         run: |
           mkdir -p output
           APP_PATH=./DerivedData/Build/Products/Release-iphoneos/HeartFloat.app
-          echo "Looking for app at: $APP_PATH"
-          ls -la "$APP_PATH" || ls -la ./DerivedData/Build/Products/
-          cp -r "$APP_PATH" ./output/
-          cd ./output
-          mkdir -p Payload
-          cp -r HeartFloat.app Payload/
-          zip -r ./HeartFloat-${{ github.run_number }}.ipa Payload
-          ls -la
+          echo "=== Checking App Path ==="
+          if [ -d "$APP_PATH" ]; then
+            echo "App found at: $APP_PATH"
+            echo "=== App Contents ==="
+            ls -la "$APP_PATH"
+            echo "=== App Size ==="
+            du -sh "$APP_PATH"
+            echo "=== Copying to output ==="
+            cp -r "$APP_PATH" ./output/
+            cd ./output
+            mkdir -p Payload
+            cp -r HeartFloat.app Payload/
+            echo "=== Payload Contents ==="
+            ls -la Payload/
+            ls -la Payload/HeartFloat.app/
+            zip -r ./HeartFloat-${{ github.run_number }}.ipa Payload
+            echo "=== IPA Created ==="
+            ls -la
+            du -sh HeartFloat-${{ github.run_number }}.ipa
+          else
+            echo "ERROR: App not found at: $APP_PATH"
+            find ./DerivedData -name "*.app" -type d 2>/dev/null
+            exit 1
+          fi
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
