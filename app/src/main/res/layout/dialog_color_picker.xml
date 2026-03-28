@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/select_color"
+        android:textColor="#333333"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <View
+        android:id="@+id/viewColorPreview"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_marginTop="16dp"
+        android:background="#FF6B6B" />
+
+    <RadioGroup
+        android:id="@+id/rgColorMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/rbRgbMode"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:checked="true"
+            android:text="@string/rgb_mode" />
+
+        <RadioButton
+            android:id="@+id/rbHslMode"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/hsl_mode" />
+
+    </RadioGroup>
+
+    <LinearLayout
+        android:id="@+id/containerRgb"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="R (红)"
+            android:textColor="#FF0000"
+            android:textSize="14sp" />
+
+        <SeekBar
+            android:id="@+id/seekR"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="255"
+            android:progressTint="#FF0000" />
+
+        <TextView
+            android:id="@+id/tvRValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="255"
+            android:textColor="#FF0000"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="G (绿)"
+            android:textColor="#00FF00"
+            android:textSize="14sp" />
+
+        <SeekBar
+            android:id="@+id/seekG"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="255"
+            android:progressTint="#00FF00" />
+
+        <TextView
+            android:id="@+id/tvGValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="107"
+            android:textColor="#00FF00"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="B (蓝)"
+            android:textColor="#0000FF"
+            android:textSize="14sp" />
+
+        <SeekBar
+            android:id="@+id/seekB"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="255"
+            android:progressTint="#0000FF" />
+
+        <TextView
+            android:id="@+id/tvBValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="107"
+            android:textColor="#0000FF"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/containerHsl"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="H (色相)"
+            android:textColor="#333333"
+            android:textSize="14sp" />
+
+        <SeekBar
+            android:id="@+id/seekH"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="360" />
+
+        <TextView
+            android:id="@+id/tvHValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textColor="#333333"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="S (饱和度 %)"
+            android:textColor="#333333"
+            android:textSize="14sp" />
+
+        <SeekBar
+            android:id="@+id/seekS"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100" />
+
+        <TextView
+            android:id="@+id/tvSValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="100"
+            android:textColor="#333333"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="L (亮度 %)"
+            android:textColor="#333333"
+            android:textSize="14sp" />
+
+        <SeekBar
+            android:id="@+id/seekL"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100" />
+
+        <TextView
+            android:id="@+id/tvLValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="70"
+            android:textColor="#333333"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/opacity"
+        android:textColor="#333333"
+        android:textSize="14sp" />
+
+    <SeekBar
+        android:id="@+id/seekAlpha"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="255"
+        android:progress="255" />
+
+    <TextView
+        android:id="@+id/tvAlphaValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="100%"
+        android:textColor="#333333"
+        android:textSize="12sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/preset_colors"
+        android:textColor="#333333"
+        android:textSize="14sp" />
+
+    <GridLayout
+        android:id="@+id/gridPresetColors"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:columnCount="6"
+        android:rowCount="2">
+
+    </GridLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#999999"
+            android:text="@android:string/cancel" />
+
+        <Button
+            android:id="@+id/btnConfirm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:backgroundTint="#FF6B6B"
+            android:text="@android:string/ok" />
+
+    </LinearLayout>
+
+</LinearLayout>

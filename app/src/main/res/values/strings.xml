@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">心率悬浮窗</string>
+    <string name="connect">连接手环</string>
+    <string name="disconnect">断开连接</string>
+    <string name="cancel_connect">取消连接</string>
+    <string name="show_float">显示悬浮窗</string>
+    <string name="hide_float">隐藏悬浮窗</string>
+    <string name="status_disconnected">未连接</string>
+    <string name="status_connecting">正在连接...</string>
+    <string name="status_connected">已连接</string>
+    <string name="heart_rate_format">%d BPM</string>
+    <string name="heart_rate_unknown">-- BPM</string>
+    <string name="notification_title">心率监控中</string>
+    <string name="notification_content">正在监测心率数据</string>
+    <string name="channel_name">心率监控服务</string>
+    <string name="channel_description">心率监控前台服务通知</string>
+    <string name="permission_overlay_required">请授予悬浮窗权限</string>
+    <string name="permission_bluetooth_required">请授予蓝牙权限</string>
+    <string name="permission_location_required">请授予位置权限以扫描蓝牙设备</string>
+    
+    <string name="settings">设置</string>
+    <string name="back">返回</string>
+    <string name="bpm_number_settings">BPM数字设置</string>
+    <string name="bpm_label_settings">BPM文字设置</string>
+    <string name="text_size">文字大小</string>
+    <string name="text_color">文字颜色</string>
+    <string name="font">字体</string>
+    <string name="position_settings">位置设置</string>
+    <string name="position_top">上方</string>
+    <string name="position_bottom">下方</string>
+    <string name="position_left">左侧</string>
+    <string name="position_right">右侧</string>
+    <string name="position_preview_hint">选择BPM文字相对于数字的位置</string>
+    <string name="background_settings">背景设置</string>
+    <string name="background_opacity">背景不透明度</string>
+    <string name="background_opacity_hint" formatted="false">调整悬浮窗背景的透明度，0%为完全透明，100%为完全不透明</string>
+    
+    <string name="http_push_settings">联网推送</string>
+    <string name="http_push_enable">启用HTTP推送</string>
+    <string name="http_port">端口</string>
+    <string name="apply">应用</string>
+    <string name="local_ip">本机地址</string>
+    <string name="http_api_info">API接口说明：</string>
+    <string name="http_server_started">HTTP服务已启动，端口：%d</string>
+    <string name="http_server_started_no_ip">HTTP服务已启动，但未检测到网络连接</string>
+    <string name="http_server_stopped">HTTP服务已停止</string>
+    <string name="http_server_failed">HTTP服务启动失败</string>
+    <string name="port_applied">端口已应用</string>
+    <string name="invalid_port">无效的端口号（1024-65535）</string>
+    <string name="no_network_connection">未连接到网络</string>
+    
+    <string name="preset_schemes">预设方案</string>
+    <string name="preset_classic">经典</string>
+    <string name="preset_neon">霓虹</string>
+    <string name="preset_ocean">海洋</string>
+    <string name="preset_applied">预设方案已应用</string>
+    
+    <string name="global_font_settings">全局字体设置</string>
+    <string name="global_font">全局字体</string>
+    <string name="global_font_hint">选择应用全局使用的字体，重启应用后生效</string>
+    <string name="global_font_applied">全局字体已设置，重启应用后生效</string>
+    
+    <string name="font_management">字体管理</string>
+    <string name="import_font">导入字体</string>
+    <string name="restore_default">恢复默认</string>
+    <string name="preview">预览</string>
+    <string name="rgb_mode">RGB模式</string>
+    <string name="hsl_mode">HSL模式</string>
+    <string name="opacity">透明度</string>
+    <string name="select_color">选择颜色</string>
+    <string name="custom_fonts">自定义字体</string>
+    <string name="no_custom_fonts">暂无自定义字体</string>
+    <string name="delete_font">删除字体</string>
+    <string name="delete_font_confirm">确定删除字体 \"%s\" 吗？</string>
+    <string name="font_imported">字体导入成功</string>
+    <string name="font_import_failed">字体导入失败</string>
+    <string name="font_deleted">字体已删除</string>
+    <string name="invalid_font_file">无效的字体文件</string>
+    <string name="restore_default_confirm">确定要恢复所有设置为默认值吗？</string>
+    <string name="settings_restored">设置已恢复默认值</string>
+    <string name="preset_colors">预设颜色</string>
+</resources>
