@@ -30,7 +30,13 @@ class MainViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         setupActions()
-        setupPIP()
+        do {
+            try setupPIP()
+        } catch {
+            appendLog("画中画初始化失败: \(error.localizedDescription)")
+            pipButton.isEnabled = false
+            pipButton.alpha = 0.5
+        }
         BleService.shared.delegate = self
         BleService.shared.startService()
         appendLog("应用启动")
@@ -196,7 +202,7 @@ class MainViewController: UIViewController {
         copyLogButton.addTarget(self, action: #selector(copyLogButtonTapped), for: .touchUpInside)
     }
     
-    private func setupPIP() {
+    private func setupPIP() throws {
         if #available(iOS 15.0, *) {
             if AVPictureInPictureController.isPictureInPictureSupported() {
                 let pipView = HeartRatePIPView()
@@ -213,7 +219,7 @@ class MainViewController: UIViewController {
                     pipPlayer = AVPlayer()
                     pipPlayerLayer?.player = pipPlayer
                     
-                    generateSilentAudioForPIP()
+                    try generateSilentAudioForPIP()
                 }
             } else {
                 pipButton.isEnabled = false
@@ -227,31 +233,20 @@ class MainViewController: UIViewController {
         }
     }
     
-    private func generateSilentAudioForPIP() {
+    private func generateSilentAudioForPIP() throws {
         let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-            try audioSession.setActive(true)
-        } catch {
-            appendLog("音频会话设置失败")
+        try audioSession.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        try audioSession.setActive(true)
+        
+        let tempDir = FileManager.default.temporaryDirectory
+        let silencePath = tempDir.appendingPathComponent("silence.mp3")
+        
+        if !FileManager.default.fileExists(atPath: silencePath.path) {
+            let silentData = createSilentAudioData()
+            try silentData.write(to: silencePath)
         }
         
-        guard let url = Bundle.main.url(forResource: "silence", withExtension: "mp3") else {
-            let tempDir = FileManager.default.temporaryDirectory
-            let silencePath = tempDir.appendingPathComponent("silence.mp3")
-            
-            if !FileManager.default.fileExists(atPath: silencePath.path) {
-                let silentData = createSilentAudioData()
-                try? silentData.write(to: silencePath)
-            }
-            
-            let playerItem = AVPlayerItem(url: silencePath)
-            pipPlayer?.replaceCurrentItem(with: playerItem)
-            pipPlayer?.play()
-            return
-        }
-        
-        let playerItem = AVPlayerItem(url: url)
+        let playerItem = AVPlayerItem(url: silencePath)
         pipPlayer?.replaceCurrentItem(with: playerItem)
         pipPlayer?.play()
     }
