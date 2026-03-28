@@ -52,32 +52,18 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
+            BUILD_DIR=build \
             build
 
       - name: Create IPA
-        id: create_ipa
         working-directory: ./ios/HeartFloat
-        env:
-          SCHEME: HeartFloat
         run: |
           mkdir -p output
-          APP_PATH=$(xcodebuild -project HeartFloat.xcodeproj -scheme $SCHEME -showBuildSettings 2>/dev/null | grep -E "BUILT_PRODUCTS_DIR|BUILD_DIR" | head -2)
-          echo "Build settings: $APP_PATH"
-          APP_BUILT_PATH=$(xcodebuild -project HeartFloat.xcodeproj -scheme $SCHEME -showBuildSettings 2>/dev/null | grep "BUILT_PRODUCTS_DIR" | awk -F'= ' '{print $2}' | tr -d ' ')
-          FULL_APP_PATH="$APP_BUILT_PATH/${SCHEME}.app"
-          echo "Looking for app at: $FULL_APP_PATH"
-          if [ -d "$FULL_APP_PATH" ]; then
-            cp -r "$FULL_APP_PATH" ./output/
-            cd ./output
-            mkdir -p Payload
-            cp -r ${SCHEME}.app Payload/
-            zip -r ./${SCHEME}-${{ github.run_number }}.ipa Payload
-            echo "IPA created successfully"
-            ls -la
-          else
-            echo "App not found at: $FULL_APP_PATH"
-            exit 1
-          fi
+          cd output
+          mkdir -p Payload
+          cp -r ../build/Release-iphoneos/HeartFloat.app Payload/
+          zip -r ./HeartFloat-${{ github.run_number }}.ipa Payload
+          ls -la
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
