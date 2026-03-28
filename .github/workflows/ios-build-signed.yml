@@ -47,6 +47,7 @@ jobs:
             -scheme ${{ env.SCHEME }} \
             -configuration Release \
             -destination 'generic/platform=iOS' \
+            -derivedDataPath ./DerivedData \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
@@ -56,12 +57,15 @@ jobs:
         working-directory: ./ios/HeartFloat
         run: |
           mkdir -p output
-          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "HeartFloat.app" -type d 2>/dev/null | grep -v "PlugIns" | head -1)
+          APP_PATH=./DerivedData/Build/Products/Release-iphoneos/HeartFloat.app
+          echo "Looking for app at: $APP_PATH"
+          ls -la "$APP_PATH" || ls -la ./DerivedData/Build/Products/
           cp -r "$APP_PATH" ./output/
           cd ./output
           mkdir -p Payload
           cp -r HeartFloat.app Payload/
           zip -r ./HeartFloat-${{ github.run_number }}.ipa Payload
+          ls -la
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
