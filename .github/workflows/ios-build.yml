@@ -36,6 +36,11 @@ jobs:
           fi
           xcodegen generate
 
+      - name: Fix project format
+        working-directory: ./ios/HeartFloat
+        run: |
+          find . -name "*.pbxproj" -exec sed -i '' 's/77/56/g' {} \;
+
       - name: Build
         working-directory: ./ios/HeartFloat
         run: |
