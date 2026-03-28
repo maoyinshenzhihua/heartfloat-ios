@@ -43,34 +43,3 @@ targets:
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGNING_ALLOWED: NO
-    info:
-      path: Resources/Info.plist
-      properties:
-        CFBundleName: HeartFloat
-        CFBundleDisplayName: 心率悬浮
-        CFBundleIdentifier: com.heartfloat.app
-        CFBundleVersion: "1"
-        CFBundleShortVersionString: "1.0"
-        CFBundlePackageType: APPL
-        CFBundleExecutable: HeartFloat
-        UILaunchStoryboardName: LaunchScreen
-        UIApplicationSceneManifest:
-          UIApplicationSupportsMultipleScenes: false
-          UISceneConfigurations:
-            UIWindowSceneSessionRoleApplication:
-              - UISceneConfigurationName: Default Configuration
-                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
-        UISupportedInterfaceOrientations:
-          - UIInterfaceOrientationPortrait
-        UISupportedInterfaceOrientations~ipad:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationPortraitUpsideDown
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
-        UIRequiresFullScreen: true
-        UIBackgroundModes:
-          - bluetooth-central
-          - audio
-        NSBluetoothAlwaysUsageDescription: 需要蓝牙权限连接心率监测设备
-        NSBluetoothPeripheralUsageDescription: 需要蓝牙权限连接心率监测设备
-        NSLocalNetworkUsageDescription: 需要本地网络权限提供心率数据HTTP接口
