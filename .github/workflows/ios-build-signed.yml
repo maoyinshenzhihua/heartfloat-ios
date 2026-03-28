@@ -1,0 +1,68 @@
+name: Build iOS App (With Signing)
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-build-signed.yml'
+  workflow_dispatch:
+
+env:
+  XCODE_VERSION: '15.0'
+  IOS_DEPLOYMENT_TARGET: '14.0'
+  BUNDLE_ID: com.heartfloat.app
+  SCHEME: HeartFloat
+
+jobs:
+  build-signed:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Generate Xcode project
+        working-directory: ./ios/HeartFloat
+        run: |
+          if which xcodegen >/dev/null; then
+            echo "XcodeGen is already installed"
+          else
+            brew install xcodegen
+          fi
+          xcodegen generate
+
+      - name: Fix project format
+        run: |
+          find . -name "*.pbxproj" -exec sed -i '' 's/77/56/g' {} \;
+
+      - name: Build
+        run: |
+          xcodebuild -project HeartFloat.xcodeproj \
+            -scheme ${{ env.SCHEME }} \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Create IPA
+        run: |
+          mkdir -p output
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "*.app" -type d 2>/dev/null | grep -v "PlugIns" | head -1)
+          cp -r "$APP_PATH" ./output/
+          cd ./output
+          mkdir -p Payload
+          cp -r *.app Payload/
+          zip -r ./HeartFloat-${{ github.run_number }}.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: HeartFloat-iOS-${{ github.run_number }}
+          path: output/HeartFloat-${{ github.run_number }}.ipa
+          retention-days: 30
