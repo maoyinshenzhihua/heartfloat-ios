@@ -21,17 +21,9 @@ jobs:
         with:
           xcode-version: '16.0'
 
-      - name: Install CocoaPods
-        run: |
-          gem install cocoapods
-          pod repo update
-
-      - name: Install Pods
-        run: pod install
-
       - name: Build and Archive
         run: |
-          xcodebuild -workspace HeartFloat.xcworkspace \
+          xcodebuild -project HeartFloat.xcodeproj \
             -scheme HeartFloat \
             -sdk iphoneos \
             -configuration Release \
