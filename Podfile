@@ -4,9 +4,6 @@ inhibit_all_warnings!
 
 target 'HeartFloat' do
   pod 'GCDWebServer', '~> 3.5'
-  pod 'GCDWebServer/WebHTTP', '~> 3.5'
-  pod 'GCDWebServer/WebDAV', '~> 3.5'
-  pod 'GCDWebServer/WebUploader', '~> 3.5'
 end
 
 post_install do |installer|

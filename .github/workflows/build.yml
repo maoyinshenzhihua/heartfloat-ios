@@ -25,6 +25,13 @@ jobs:
     - name: Show available simulators
       run: xcrun simctl list devices available | head -30
 
+    - name: Install XcodeGen
+      run: |
+        which xcodegen || brew install xcodegen
+
+    - name: Generate Xcode Project
+      run: xcodegen generate
+
     - name: Install CocoaPods
       run: pod install
 
