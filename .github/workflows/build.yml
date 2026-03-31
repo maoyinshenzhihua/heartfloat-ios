@@ -70,9 +70,9 @@ jobs:
         run: |
           DEVEL_TEAM="${{ secrets.DEVELOPMENT_TEAM }}"
           if [ -f "Podfile" ]; then
-            xcodebuild -workspace ${{ env.PROJECT_NAME }}.xcworkspace -scheme ${{ env.PROJECT_NAME }} -configuration Release -destination 'generic/platform=iOS' -archivePath build/${{ env.PROJECT_NAME }}.xcarchive archive DEVELOPMENT_TEAM="$DEVEL_TEAM" PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID }} MARKETING_VERSION=${{ env.MARKETING_VERSION }} CURRENT_PROJECT_VERSION=${{ env.CURRENT_PROJECT_VERSION }}
+            xcodebuild -workspace ${{ env.PROJECT_NAME }}.xcworkspace -scheme ${{ env.PROJECT_NAME }} -configuration Release -destination 'generic/platform=iOS' -archivePath build/${{ env.PROJECT_NAME }}.xcarchive archive CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM="$DEVEL_TEAM" PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID }} MARKETING_VERSION=${{ env.MARKETING_VERSION }} CURRENT_PROJECT_VERSION=${{ env.CURRENT_PROJECT_VERSION }}
           else
-            xcodebuild -project ${{ env.PROJECT_NAME }}.xcodeproj -scheme ${{ env.PROJECT_NAME }} -configuration Release -destination 'generic/platform=iOS' -archivePath build/${{ env.PROJECT_NAME }}.xcarchive archive DEVELOPMENT_TEAM="$DEVEL_TEAM" PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID }} MARKETING_VERSION=${{ env.MARKETING_VERSION }} CURRENT_PROJECT_VERSION=${{ env.CURRENT_PROJECT_VERSION }}
+            xcodebuild -project ${{ env.PROJECT_NAME }}.xcodeproj -scheme ${{ env.PROJECT_NAME }} -configuration Release -destination 'generic/platform=iOS' -archivePath build/${{ env.PROJECT_NAME }}.xcarchive archive CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM="$DEVEL_TEAM" PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID }} MARKETING_VERSION=${{ env.MARKETING_VERSION }} CURRENT_PROJECT_VERSION=${{ env.CURRENT_PROJECT_VERSION }}
           fi
 
       - name: Export IPA

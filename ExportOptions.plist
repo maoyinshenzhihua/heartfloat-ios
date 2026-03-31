@@ -8,5 +8,9 @@
     <string>manual</string>
     <key>signingCertificate</key>
     <string>-</string>
+    <key>teamID</key>
+    <string>${DEVELOPMENT_TEAM}</string>
+    <key>provisioningProfiles</key>
+    <dict/>
 </dict>
 </plist>
