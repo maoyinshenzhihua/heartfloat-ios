@@ -36,6 +36,9 @@ jobs:
             -sdk iphoneos \
             -configuration Release \
             -destination 'generic/platform=iOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             clean archive \
             -archivePath $PWD/build/HeartFloat.xcarchive
 
@@ -44,7 +47,10 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath $PWD/build/HeartFloat.xcarchive \
             -exportPath $PWD/build \
-            -exportOptionsPlist ExportOptions.plist
+            -exportOptionsPlist ExportOptions.plist \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
