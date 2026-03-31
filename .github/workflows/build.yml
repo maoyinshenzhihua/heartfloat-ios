@@ -26,13 +26,10 @@ jobs:
       run: xcrun simctl list devices available | head -30
 
     - name: Install CocoaPods
-      run: |
-        cd HeartFloat-iOS
-        pod install
+      run: pod install
 
     - name: Build iOS Project
       run: |
-        cd HeartFloat-iOS
         xcodebuild -workspace HeartFloat.xcworkspace \
           -scheme HeartFloat \
           -configuration Debug \
@@ -41,7 +38,6 @@ jobs:
 
     - name: Build IPA (Release)
       run: |
-        cd HeartFloat-iOS
         mkdir -p build
         xcodebuild -workspace HeartFloat.xcworkspace \
           -scheme HeartFloat \
@@ -52,7 +48,6 @@ jobs:
 
     - name: Export IPA
       run: |
-        cd HeartFloat-iOS
         xcodebuild -exportArchive \
           -archivePath build/HeartFloat.xcarchive \
           -exportPath build/ipa \
@@ -62,12 +57,12 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: HeartFloat.ipa
-        path: HeartFloat-iOS/build/ipa/*.ipa
+        path: build/ipa/*.ipa
         retention-days: 7
 
     - name: Upload xcarchive
       uses: actions/upload-artifact@v4
       with:
         name: HeartFloat.xcarchive
-        path: HeartFloat-iOS/build/HeartFloat.xcarchive
+        path: build/HeartFloat.xcarchive
         retention-days: 7
