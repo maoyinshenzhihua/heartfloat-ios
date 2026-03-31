@@ -26,49 +26,46 @@ jobs:
           ls -la
           ls -la HeartFloat/
           ls -la HeartFloat/Resources/
+          ls -la HeartFloat/Resources/Assets.xcassets/
 
-      - name: Build iOS App (Release)
+      - name: Archive iOS App
         run: |
           xcodebuild -project HeartFloat.xcodeproj \
             -scheme HeartFloat \
+            -sdk iphoneos \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            build \
-            CODE_SIGN_IDENTITY="-" \
+            clean archive \
+            -archivePath $PWD/build/HeartFloat.xcarchive \
+            CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            IPHONEOS_DEPLOYMENT_TARGET=15.0
+            CODE_SIGNING_ALLOWED=NO
 
-      - name: Create Output Directory
-        run: mkdir -p output
-
-      - name: Find Built Products
-        id: find-built
+      - name: List archive contents
         run: |
-          find ~/Library/Developer/Xcode/DerivedData -name "*.app" -type d 2>/dev/null | head -1 | tee build_path.txt
-          echo "app_path=$(cat build_path.txt)" >> $GITHUB_OUTPUT
+          ls -la build/
+          ls -la build/HeartFloat.xcarchive/
+          ls -la build/HeartFloat.xcarchive/Products/Applications/
 
-      - name: List app contents
+      - name: Export IPA
         run: |
-          ls -la "${{ steps.find-built.outputs.app_path }}"
+          xcodebuild -exportArchive \
+            -archivePath $PWD/build/HeartFloat.xcarchive \
+            -exportPath $PWD/build/ \
+            -exportOptionsPlist ExportOptions.plist \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
 
-      - name: Copy Built App
+      - name: List export contents
         run: |
-          cp -r "${{ steps.find-built.outputs.app_path }}" output/
-          ls -la output/
-
-      - name: Create ZIP Archive
-        run: |
-          cd output
-          zip -r ../output/HeartFloat-${{ github.run_number }}.zip *.app
-          cd ..
-          ls -la output/
+          ls -la build/
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: HeartFloat-iOS
-          path: output/HeartFloat-${{ github.run_number }}.zip
+          path: build/HeartFloat.ipa
           retention-days: 30
 
       - name: Build Summary
@@ -77,6 +74,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Build Number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
           echo "**Status:** Success" >> $GITHUB_STEP_SUMMARY
-          echo "**Artifact:** [Download ZIP](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifact:** [Download IPA](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📱 Note: This build is unsigned. For installation on real devices, you need to sign the app with your Apple Developer certificate." >> $GITHUB_STEP_SUMMARY
