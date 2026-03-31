@@ -1,5 +1,5 @@
 import Foundation
-import GCDWebServer
+import Network
 
 class HttpServerManager: ObservableObject {
     static let shared = HttpServerManager()
@@ -8,8 +8,7 @@ class HttpServerManager: ObservableObject {
     @Published var currentPort: Int = 8080
     @Published var localIP: String?
 
-    private var webServer: GCDWebServer?
-
+    private var listener: NWListener?
     private var currentHeartRate: Int = 0
     private var isContact: Bool = false
     private var lastUpdateTime: Date = Date()
@@ -29,44 +28,86 @@ class HttpServerManager: ObservableObject {
     }
 
     func startServer(port: Int) -> Bool {
-        if isRunning {
-            return true
-        }
+        if isRunning { return true }
 
-        webServer = GCDWebServer()
-
-        webServer?.addDefaultHandler(forMethod: "GET", request: GCDWebServerRequest.self) { [weak self] request in
-            return self?.handleRequest(request) ?? GCDWebServerResponse(statusCode: 404)
-        }
+        currentPort = port
+        localIP = getLocalIPAddress()
 
         do {
-            try webServer?.start(options: [
-                GCDWebServerOption_Port: port,
-                GCDWebServerOption_BonjourName: "HeartFloat"
-            ])
-
-            isRunning = true
-            currentPort = port
-            localIP = getLocalIPAddress()
-            return true
+            let parameters = NWParameters.tcp
+            listener = try NWListener(using: parameters, on: NWEndpoint.Port(integerLiteral: UInt16(port)))
         } catch {
-            isRunning = false
             return false
         }
+
+        listener?.stateUpdateHandler = { [weak self] state in
+            DispatchQueue.main.async {
+                switch state {
+                case .ready:
+                    self?.isRunning = true
+                case .failed, .cancelled:
+                    self?.isRunning = false
+                default:
+                    break
+                }
+            }
+        }
+
+        listener?.newConnectionHandler = { [weak self] connection in
+            self?.handleConnection(connection)
+        }
+
+        listener?.start(queue: .global(qos: .userInitiated))
+        isRunning = true
+        return true
     }
 
     func stopServer() {
-        webServer?.stop()
-        webServer = nil
+        listener?.cancel()
+        listener = nil
         isRunning = false
         localIP = nil
     }
 
-    private func handleRequest(_ request: GCDWebServerRequest) -> GCDWebServerResponse? {
-        switch request.path {
-        case "/heartbeat":
-            return GCDWebServerDataResponse(text: "\(currentHeartRate)")
+    private func handleConnection(_ connection: NWConnection) {
+        connection.start(queue: .global(qos: .userInitiated))
 
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, _, error in
+            guard let self = self, let data = data, error == nil else {
+                connection.cancel()
+                return
+            }
+
+            guard let request = String(data: data, encoding: .utf8) else {
+                connection.cancel()
+                return
+            }
+
+            let lines = request.split(separator: "\r\n")
+            guard let firstLine = lines.first else {
+                connection.cancel()
+                return
+            }
+
+            let parts = firstLine.split(separator: " ")
+            guard parts.count >= 2 else {
+                connection.cancel()
+                return
+            }
+
+            let path = String(parts[1])
+            let response = self.createResponse(for: path)
+
+            connection.send(content: response, completion: .contentProcessed { _ in
+                connection.cancel()
+            })
+        }
+    }
+
+    private func createResponse(for path: String) -> Data {
+        switch path {
+        case "/heartbeat":
+            return createTextResponse("\(currentHeartRate)")
         case "/heartbeat.json":
             let data = getHeartRateData()
             let json: [String: Any] = [
@@ -77,19 +118,56 @@ class HttpServerManager: ObservableObject {
             ]
             if let jsonData = try? JSONSerialization.data(withJSONObject: json),
                let jsonString = String(data: jsonData, encoding: .utf8) {
-                return GCDWebServerDataResponse(text: jsonString, contentType: "application/json")
+                return createJSONResponse(jsonString)
             }
-            return GCDWebServerResponse(statusCode: 500)
-
+            return createErrorResponse()
         case "/live":
-            return GCDWebServerDataResponse(html: livePageHTML())
-
+            return createHTMLResponse(livePageHTML())
         case "/":
-            return GCDWebServerDataResponse(html: indexPageHTML())
-
+            return createHTMLResponse(indexPageHTML())
         default:
-            return GCDWebServerResponse(statusCode: 404)
+            return createErrorResponse()
         }
+    }
+
+    private func createTextResponse(_ content: String) -> Data {
+        let body = content.data(using: .utf8) ?? Data()
+        var response = "HTTP/1.1 200 OK\r\n"
+        response += "Content-Type: text/plain\r\n"
+        response += "Content-Length: \(body.count)\r\n"
+        response += "Connection: close\r\n"
+        response += "\r\n"
+        return (response.data(using: .utf8) ?? Data()) + body
+    }
+
+    private func createJSONResponse(_ content: String) -> Data {
+        let body = content.data(using: .utf8) ?? Data()
+        var response = "HTTP/1.1 200 OK\r\n"
+        response += "Content-Type: application/json\r\n"
+        response += "Content-Length: \(body.count)\r\n"
+        response += "Connection: close\r\n"
+        response += "\r\n"
+        return (response.data(using: .utf8) ?? Data()) + body
+    }
+
+    private func createHTMLResponse(_ content: String) -> Data {
+        let body = content.data(using: .utf8) ?? Data()
+        var response = "HTTP/1.1 200 OK\r\n"
+        response += "Content-Type: text/html\r\n"
+        response += "Content-Length: \(body.count)\r\n"
+        response += "Connection: close\r\n"
+        response += "\r\n"
+        return (response.data(using: .utf8) ?? Data()) + body
+    }
+
+    private func createErrorResponse() -> Data {
+        let body = "Not Found".data(using: .utf8) ?? Data()
+        var response = "HTTP/1.1 404 Not Found\r\n"
+        response += "Content-Type: text/plain\r\n"
+        response += "Content-Length: \(body.count)\r\n"
+        response += "Connection: close\r\n"
+        response += "\r\n"
+        return (response.data(using: .utf8) ?? Data()) + body
     }
 
     private func indexPageHTML() -> String {

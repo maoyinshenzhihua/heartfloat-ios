@@ -25,19 +25,12 @@ jobs:
     - name: Show available simulators
       run: xcrun simctl list devices available
 
-    - name: Create simulator
-      run: |
-        xcrun simctl boot "iPhone 16" || xcrun simctl create com.apple.CoreSimulator.SimDevice.iPhone-16 "com.apple.CoreSimulator.SimRuntime.iOS-18-0" "com.apple.CoreSimulator.SimDeviceType.iPhone-16" || echo "Using generic platform"
-
     - name: Install XcodeGen
       run: |
         which xcodegen || brew install xcodegen
 
     - name: Generate Xcode Project
       run: xcodegen generate
-
-    - name: Install CocoaPods
-      run: pod install
 
     - name: Build iOS Project
       run: |
