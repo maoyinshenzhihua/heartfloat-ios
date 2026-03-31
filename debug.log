@@ -136,4 +136,9 @@ Options:
     -scmProvider                                             which implementation to use for Git operations (system/xcode)
     -showBuildTimingSummary                                  display a report of the timings of all the commands invoked during the build
     -create-xcframework                                      create an xcframework from prebuilt libraries; -help for more information.
-Error: Process completed with exit code 64.
+Error: Process completed with exit code 64.[1312:17188:0331/174502.814:WARNING:t_skinfilemap.cpp(63)] SGRenderLog:CheckUpdate newMem.OpenMem Suc, szNewMem:Local\sgime_skin.v2.filemap.sogouime
+[1312:17188:0331/174502.814:WARNING:t_skinfilemap.cpp(65)] SGRenderLog:CheckUpdate finish: old version:1
+[1312:17188:0331/174502.814:WARNING:t_skinfilemap.cpp(67)] SGRenderLog:CheckUpdate finish: new version:2
+[9720:3688:0331/174505.867:WARNING:t_skinfilemap.cpp(63)] SGRenderLog:CheckUpdate newMem.OpenMem Suc, szNewMem:Local\sgime_skin.v2.filemap.sogouime
+[9720:3688:0331/174505.867:WARNING:t_skinfilemap.cpp(65)] SGRenderLog:CheckUpdate finish: old version:1
+[9720:3688:0331/174505.867:WARNING:t_skinfilemap.cpp(67)] SGRenderLog:CheckUpdate finish: new version:2
