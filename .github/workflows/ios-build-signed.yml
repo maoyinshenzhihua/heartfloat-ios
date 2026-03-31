@@ -34,23 +34,6 @@ jobs:
           sw_vers
           xcodebuild -version
 
-      - name: Install XcodeGen
-        run: |
-          if ! which xcodegen > /dev/null; then
-            echo "Installing XcodeGen..."
-            brew install xcodegen
-          else
-            echo "XcodeGen already installed"
-          fi
-          xcodegen --version
-
-      - name: Generate Xcode project
-        run: xcodegen generate
-
-      - name: Fix Project Format Version
-        run: |
-          find . -name "*.pbxproj" -exec sed -i '' 's/77/56/g' {} \;
-
       - name: Import Certificates
         id: import-certs
         env:
@@ -104,6 +87,7 @@ jobs:
           APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "*.app" -type d 2>/dev/null | grep -v "PlugIns" | head -1)
           echo "Found app at: $APP_PATH"
           if [ -n "$APP_PATH" ]; then
+            ls -la "$APP_PATH"
             cp -r "$APP_PATH" ./output/
             ls -la ./output/
             cd ./output
