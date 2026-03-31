@@ -32,12 +32,13 @@ jobs:
     - name: Generate Xcode Project
       run: xcodegen generate
 
-    - name: Build iOS Project (Debug)
+    - name: Build iOS App for iOS Device
       run: |
         xcodebuild -project HeartFloat.xcodeproj \
           -scheme HeartFloat \
-          -configuration Debug \
-          -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.5' \
+          -configuration Release \
+          -sdk iphoneos \
+          -arch arm64 \
           -derivedDataPath ./DerivedData \
           CODE_SIGNING_ALLOWED=NO \
           build
@@ -45,7 +46,8 @@ jobs:
     - name: Create IPA from built app
       run: |
         mkdir -p build
-        cp -R ./DerivedData/Build/Products/Debug-iphonesimulator/HeartFloat.app Payload/
+        mkdir -p Payload
+        cp -R ./DerivedData/Build/Products/Release-iphoneos/HeartFloat.app Payload/
         cd Payload && zip -r ../build/HeartFloat.ipa .
         cd ..
         rm -rf Payload
