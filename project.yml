@@ -27,12 +27,15 @@ targets:
       base:
         INFOPLIST_FILE: HeartFloat/Resources/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.heartfloat.HeartFloat
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTS_MACCATALYST: false
         ENABLE_PREVIEWS: true
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"
         SWIFT_EMIT_LOC_STRINGS: true
         ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: true
+    resources:
+      - path: HeartFloat/Resources/Assets.xcassets
     entitlements:
       path: HeartFloat/Resources/HeartFloat.entitlements
       properties:
