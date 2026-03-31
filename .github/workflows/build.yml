@@ -34,7 +34,7 @@ jobs:
 
     - name: Build iOS Project
       run: |
-        xcodebuild -workspace HeartFloat.xcworkspace \
+        xcodebuild -project HeartFloat.xcodeproj \
           -scheme HeartFloat \
           -configuration Debug \
           -destination 'generic/platform=iOS Simulator' \
@@ -44,7 +44,7 @@ jobs:
     - name: Build IPA (Release)
       run: |
         mkdir -p build
-        xcodebuild -workspace HeartFloat.xcworkspace \
+        xcodebuild -project HeartFloat.xcodeproj \
           -scheme HeartFloat \
           -configuration Release \
           -sdk iphoneos \
