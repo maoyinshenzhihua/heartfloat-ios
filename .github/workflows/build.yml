@@ -52,20 +52,6 @@ jobs:
           CODE_SIGNING_ALLOWED=NO \
           archive
 
-    - name: Export IPA
-      run: |
-        xcodebuild -exportArchive \
-          -archivePath build/HeartFloat.xcarchive \
-          -exportPath build/ipa \
-          -exportOptionsPlist ExportOptions.plist
-
-    - name: Upload IPA Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: HeartFloat.ipa
-        path: build/ipa/*.ipa
-        retention-days: 7
-
     - name: Upload xcarchive
       uses: actions/upload-artifact@v4
       with:
