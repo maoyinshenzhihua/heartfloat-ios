@@ -32,7 +32,7 @@ jobs:
     - name: Generate Xcode Project
       run: xcodegen generate
 
-    - name: Build iOS Project
+    - name: Build iOS Project (Debug)
       run: |
         xcodebuild -project HeartFloat.xcodeproj \
           -scheme HeartFloat \
@@ -41,29 +41,18 @@ jobs:
           CODE_SIGNING_ALLOWED=NO \
           build
 
-    - name: Build IPA (Release)
+    - name: Create IPA from built app
       run: |
-        mkdir -p build
-        xcodebuild -project HeartFloat.xcodeproj \
-          -scheme HeartFloat \
-          -configuration Release \
-          -sdk iphoneos \
-          -archivePath build/HeartFloat.xcarchive \
-          CODE_SIGNING_ALLOWED=NO \
-          archive
-
-    - name: Export IPA
-      run: |
-        mkdir -p build/ipa
-        xcodebuild -exportArchive \
-          -archivePath build/HeartFloat.xcarchive \
-          -exportPath build/ipa \
-          -exportFormat ipa \
-          CODE_SIGN_ID=NO
+        cd build
+        mkdir -p Payload
+        cp -R build/Debug-iphonesimulator/HeartFloat.app Payload/
+        zip -r HeartFloat.ipa Payload
+        rm -rf Payload
+        ls -la
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4
       with:
         name: HeartFloat.ipa
-        path: build/ipa/*.ipa
+        path: build/HeartFloat.ipa
         retention-days: 7
