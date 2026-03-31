@@ -68,19 +68,29 @@ jobs:
 
       - name: Build project
         run: |
+          DEVEL_TEAM="${{ secrets.DEVELOPMENT_TEAM }}"
           if [ -f "Podfile" ]; then
-            xcodebuild -workspace ${{ env.PROJECT_NAME }}.xcworkspace -scheme ${{ env.PROJECT_NAME }} -configuration Release -destination 'generic/platform=iOS' -archivePath build/${{ env.PROJECT_NAME }}.xcarchive archive CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM="${{ secrets.DEVELOPMENT_TEAM }}" PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID }} MARKETING_VERSION=${{ env.MARKETING_VERSION }} CURRENT_PROJECT_VERSION=${{ env.CURRENT_PROJECT_VERSION }}
+            xcodebuild -workspace ${{ env.PROJECT_NAME }}.xcworkspace -scheme ${{ env.PROJECT_NAME }} -configuration Release -destination 'generic/platform=iOS' -archivePath build/${{ env.PROJECT_NAME }}.xcarchive archive DEVELOPMENT_TEAM="$DEVEL_TEAM" PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID }} MARKETING_VERSION=${{ env.MARKETING_VERSION }} CURRENT_PROJECT_VERSION=${{ env.CURRENT_PROJECT_VERSION }}
           else
-            xcodebuild -project ${{ env.PROJECT_NAME }}.xcodeproj -scheme ${{ env.PROJECT_NAME }} -configuration Release -destination 'generic/platform=iOS' -archivePath build/${{ env.PROJECT_NAME }}.xcarchive archive CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM="${{ secrets.DEVELOPMENT_TEAM }}" PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID }} MARKETING_VERSION=${{ env.MARKETING_VERSION }} CURRENT_PROJECT_VERSION=${{ env.CURRENT_PROJECT_VERSION }}
+            xcodebuild -project ${{ env.PROJECT_NAME }}.xcodeproj -scheme ${{ env.PROJECT_NAME }} -configuration Release -destination 'generic/platform=iOS' -archivePath build/${{ env.PROJECT_NAME }}.xcarchive archive DEVELOPMENT_TEAM="$DEVEL_TEAM" PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID }} MARKETING_VERSION=${{ env.MARKETING_VERSION }} CURRENT_PROJECT_VERSION=${{ env.CURRENT_PROJECT_VERSION }}
           fi
 
       - name: Export IPA
         run: |
           mkdir -p build
+          DEVEL_TEAM="${{ secrets.DEVELOPMENT_TEAM }}"
           if [ -f "ExportOptions.plist" ]; then
-            xcodebuild -exportArchive -archivePath build/${{ env.PROJECT_NAME }}.xcarchive -exportPath build -exportOptionsPlist ExportOptions.plist CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}" DEVELOPMENT_TEAM="${{ secrets.DEVELOPMENT_TEAM }}"
+            if [ -n "$DEVEL_TEAM" ]; then
+              xcodebuild -exportArchive -archivePath build/${{ env.PROJECT_NAME }}.xcarchive -exportPath build -exportOptionsPlist ExportOptions.plist DEVELOPMENT_TEAM="$DEVEL_TEAM"
+            else
+              xcodebuild -exportArchive -archivePath build/${{ env.PROJECT_NAME }}.xcarchive -exportPath build -exportOptionsPlist ExportOptions.plist
+            fi
           else
-            xcodebuild -exportArchive -archivePath build/${{ env.PROJECT_NAME }}.xcarchive -exportPath build -exportOptionsPlist /dev/null CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}" DEVELOPMENT_TEAM="${{ secrets.DEVELOPMENT_TEAM }}" -allowProvisioningUpdates
+            if [ -n "$DEVEL_TEAM" ]; then
+              xcodebuild -exportArchive -archivePath build/${{ env.PROJECT_NAME }}.xcarchive -exportPath build -exportOptionsPlist /dev/null DEVELOPMENT_TEAM="$DEVEL_TEAM" -allowProvisioningUpdates
+            else
+              xcodebuild -exportArchive -archivePath build/${{ env.PROJECT_NAME }}.xcarchive -exportPath build -exportOptionsPlist /dev/null -allowProvisioningUpdates
+            fi
           fi
 
       - name: Verify IPA exists
