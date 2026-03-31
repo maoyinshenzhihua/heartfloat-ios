@@ -61,8 +61,8 @@ jobs:
 
       - name: Generate project
         run: |
-          if [ -f "project.yml" ]; then
-            which xcodegen || gem install xcodegen
+          if [ -f "project.yml" ] && [ ! -f "${{ env.PROJECT_NAME }}.xcodeproj" ]; then
+            brew install xcodegen
             xcodegen generate
           fi
 
