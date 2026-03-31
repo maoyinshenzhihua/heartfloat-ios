@@ -25,6 +25,10 @@ jobs:
     - name: Show available simulators
       run: xcrun simctl list devices available
 
+    - name: Create simulator
+      run: |
+        xcrun simctl boot "iPhone 16" || xcrun simctl create com.apple.CoreSimulator.SimDevice.iPhone-16 "com.apple.CoreSimulator.SimRuntime.iOS-18-0" "com.apple.CoreSimulator.SimDeviceType.iPhone-16" || echo "Using generic platform"
+
     - name: Install XcodeGen
       run: |
         which xcodegen || brew install xcodegen
@@ -40,7 +44,8 @@ jobs:
         xcodebuild -workspace HeartFloat.xcworkspace \
           -scheme HeartFloat \
           -configuration Debug \
-          -destination 'platform=iOS Simulator,OS=18.0,name=iPhone 16' \
+          -destination 'generic/platform=iOS Simulator' \
+          CODE_SIGNING_ALLOWED=NO \
           build
 
     - name: Build IPA (Release)
@@ -51,6 +56,7 @@ jobs:
           -configuration Release \
           -sdk iphoneos \
           -archivePath build/HeartFloat.xcarchive \
+          CODE_SIGNING_ALLOWED=NO \
           archive
 
     - name: Export IPA
