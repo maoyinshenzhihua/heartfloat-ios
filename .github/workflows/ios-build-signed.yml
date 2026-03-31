@@ -1,0 +1,140 @@
+name: Build iOS App (With Signing)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'HeartFloat/**'
+      - '.github/workflows/ios-build-signed.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'HeartFloat/**'
+      - '.github/workflows/ios-build-signed.yml'
+  workflow_dispatch:
+
+env:
+  XCODE_VERSION: '15.0'
+  IOS_DEPLOYMENT_TARGET: '15.0'
+  BUNDLE_ID: com.heartfloat.HeartFloat
+  SCHEME: HeartFloat
+
+jobs:
+  build-signed:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify macOS Version
+        run: |
+          sw_vers
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          if ! which xcodegen > /dev/null; then
+            echo "Installing XcodeGen..."
+            brew install xcodegen
+          else
+            echo "XcodeGen already installed"
+          fi
+          xcodegen --version
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Fix Project Format Version
+        run: |
+          find . -name "*.pbxproj" -exec sed -i '' 's/77/56/g' {} \;
+
+      - name: Import Certificates
+        id: import-certs
+        env:
+          P12_CERTIFICATE: ${{ secrets.P12_CERTIFICATE }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+        run: |
+          if [ -n "$P12_CERTIFICATE" ] && [ -n "$P12_PASSWORD" ]; then
+            echo "$P12_CERTIFICATE" | base64 --decode > certificate.p12
+            security create-keychain -p "" build-agent.keychain
+            security set-keychain-settings build-agent.keychain
+            security unlock-keychain -p "" build-agent.keychain
+            security import certificate.p12 -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k build-agent.keychain
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -k "" build-agent.keychain
+            security list-keychain -d user -s build-agent.keychain
+            echo "CERT_IMPORTED=true" >> $GITHUB_ENV
+          else
+            echo "CERT_IMPORTED=false" >> $GITHUB_ENV
+          fi
+
+      - name: Setup Provisioning Profile
+        env:
+          PROVISIONING_PROFILE: ${{ secrets.PROVISIONING_PROFILE }}
+        run: |
+          if [ -n "$PROVISIONING_PROFILE" ]; then
+            echo "$PROVISIONING_PROFILE" | base64 --decode > Profile.mobileprovision
+            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+            cp Profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          fi
+
+      - name: Build iOS App
+        env:
+          PRODUCT_BUNDLE_IDENTIFIER: ${{ vars.BUNDLE_ID || env.BUNDLE_ID }}
+          DEVELOPMENT_TEAM: ${{ vars.DEVELOPMENT_TEAM || '' }}
+        run: |
+          echo "=== Building ==="
+          xcodebuild -project HeartFloat.xcodeproj \
+            -scheme ${{ env.SCHEME }} \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            build \
+            CODE_SIGN_IDENTITY="${{ vars.CODE_SIGN_IDENTITY || '-' }}" \
+            CODE_SIGNING_REQUIRED=${{ env.CERT_IMPORTED }} \
+            CODE_SIGNING_ALLOWED=${{ env.CERT_IMPORTED }} \
+            DEVELOPMENT_TEAM="${{ vars.DEVELOPMENT_TEAM || '' }}" \
+            IPHONEOS_DEPLOYMENT_TARGET=${{ env.IOS_DEPLOYMENT_TARGET }}
+
+      - name: Create IPA
+        run: |
+          echo "=== Creating IPA ==="
+          mkdir -p output
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "*.app" -type d 2>/dev/null | grep -v "PlugIns" | head -1)
+          echo "Found app at: $APP_PATH"
+          if [ -n "$APP_PATH" ]; then
+            cp -r "$APP_PATH" ./output/
+            ls -la ./output/
+            cd ./output
+            mkdir -p Payload
+            cp -r *.app Payload/
+            zip -r ./HeartFloat-${{ github.run_number }}.ipa Payload
+            rm -rf Payload
+            rm -rf *.app
+            cd ..
+            ls -la output/
+          else
+            echo "No app found!"
+          fi
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HeartFloat-iOS-${{ github.run_number }}
+          path: output/HeartFloat-${{ github.run_number }}.ipa
+          retention-days: 30
+
+      - name: Build Summary
+        run: |
+          echo "## iOS Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Number | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Artifact | [Download IPA](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts) |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Failure Summary
+        if: failure()
+        run: |
+          echo "## Build Failed" >> $GITHUB_STEP_SUMMARY

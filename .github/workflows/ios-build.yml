@@ -1,0 +1,125 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'HeartFloat/**'
+      - '.github/workflows/ios-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'HeartFloat/**'
+      - '.github/workflows/ios-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify XcodeGen installation
+        run: which xcodegen || brew install xcodegen
+
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /usr/local/Cellar/xcodegen
+          key: ${{ runner.os }}-xcodegen
+
+      - name: Install dependencies
+        run: |
+          if ! which xcodegen > /dev/null; then
+            brew install xcodegen
+          fi
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Setup App Store Connect API Key
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$APP_STORE_CONNECT_API_KEY_CONTENT" | base64 --decode > ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
+          ls -la ~/private_keys/
+
+      - name: Build iOS App (Debug)
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          CODE_SIGN_STYLE: Automatic
+          PRODUCT_BUNDLE_IDENTIFIER: com.heartfloat.HeartFloat
+          CODE_SIGN_IDENTITY: "-"
+          DEVELOPMENT_TEAM: ""
+        run: |
+          xcodebuild -project HeartFloat.xcodeproj \
+            -scheme HeartFloat \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Create Output Directory
+        run: mkdir -p output
+
+      - name: Build iOS App (Release)
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          CODE_SIGN_STYLE: Automatic
+          PRODUCT_BUNDLE_IDENTIFIER: com.heartfloat.HeartFloat
+        run: |
+          xcodebuild -project HeartFloat.xcodeproj \
+            -scheme HeartFloat \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0
+
+      - name: Find Built Products
+        id: find-built
+        run: |
+          find ~/Library/Developer/Xcode/DerivedData -name "*.app" -type d 2>/dev/null | head -1 | tee build_path.txt
+          echo "app_path=$(cat build_path.txt)" >> $GITHUB_OUTPUT
+
+      - name: Copy Built App
+        run: |
+          cp -r "${{ steps.find-built.outputs.app_path }}" output/
+          ls -la output/
+
+      - name: Create ZIP Archive
+        run: |
+          cd output
+          zip -r ../output/HeartFloat-${{ github.run_number }}.zip *.app
+          cd ..
+          ls -la output/
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HeartFloat-iOS
+          path: output/HeartFloat-${{ github.run_number }}.zip
+          retention-days: 30
+
+      - name: Build Summary
+        run: |
+          echo "## ✅ iOS Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** Success" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifact:** [Download ZIP](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📱 Note: This build is unsigned. For installation on real devices, you need to sign the app with your Apple Developer certificate." >> $GITHUB_STEP_SUMMARY
