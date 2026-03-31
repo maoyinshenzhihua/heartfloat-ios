@@ -21,8 +21,20 @@ jobs:
         with:
           xcode-version: '16.0'
 
+      - name: Install XcodeGen
+        run: |
+          brew install xcodegen
+
+      - name: Generate Xcode project
+        run: |
+          xcodegen generate
+
+      - name: List project files
+        run: ls -la
+
       - name: Build and Archive
         run: |
+          set -o pipefail
           xcodebuild -project HeartFloat.xcodeproj \
             -scheme HeartFloat \
             -sdk iphoneos \
@@ -31,8 +43,10 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
+            ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS=NO \
             clean archive \
-            -archivePath $PWD/build/HeartFloat.xcarchive
+            -archivePath $PWD/build/HeartFloat.xcarchive \
+            -verbose 2>&1 | tee build.log
 
       - name: Export IPA
         run: |
@@ -43,6 +57,14 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload build log on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: Build-Logs
+          path: build.log
+          retention-days: 7
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
