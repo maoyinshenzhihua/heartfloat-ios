@@ -1,0 +1,40 @@
+name: HeartFloat
+options:
+  bundleIdPrefix: com.heartfloat
+  deploymentTarget:
+    iOS: "15.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "5.0"
+
+targets:
+  HeartFloat:
+    type: application
+    platform: iOS
+    sources:
+      - path: HeartFloat
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        INFOPLIST_FILE: HeartFloat/Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.heartfloat.HeartFloat
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: false
+        ENABLE_PREVIEWS: true
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"
+        SWIFT_EMIT_LOC_STRINGS: true
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: true
+    entitlements:
+      path: HeartFloat/Resources/HeartFloat.entitlements
+      properties:
+        com.apple.developer.healthkit: false
