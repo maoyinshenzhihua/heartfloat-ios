@@ -4,7 +4,7 @@ import UIKit
 import AVKit
 import AVFoundation
 
-class HeartRateViewModel: ObservableObject {
+class HeartRateViewModel: NSObject, ObservableObject {
     @Published var heartRate: Int = 0
     @Published var connectionState: BleService.ConnectionState = .disconnected
     @Published var isContact: Bool = false
@@ -22,8 +22,13 @@ class HeartRateViewModel: ObservableObject {
     private var pipWindow: UIWindow?
     private var pipContentView: UIView?
 
-    init() {
+    override init() {
+        super.init()
         setupBindings()
+    }
+
+    deinit {
+        stopPip()
     }
 
     private func setupBindings() {
@@ -105,9 +110,8 @@ class HeartRateViewModel: ObservableObject {
     }
 
     private func setupPipPlayer() {
-        guard let scene = (UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }.first
-            ?? UIApplication.shared.windows.first?.windowScene) else {
+        guard let scene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene }).first else {
             addLog("无法获取窗口场景")
             return
         }
@@ -118,25 +122,25 @@ class HeartRateViewModel: ObservableObject {
         player.allowsExternalPlayback = false
         player.preventsDisplaySleepDuringVideoPlayback = false
 
-        let playerLayer = AVPlayerLayer(player: player)
-        playerLayer.frame = CGRect(x: 0, y: 0, width: 120, height: 120)
-        playerLayer.backgroundColor = UIColor.black.cgColor
-        playerLayer.videoGravity = .resizeAspect
+        let layer = AVPlayerLayer(player: player)
+        layer.frame = CGRect(x: 0, y: 0, width: 120, height: 120)
+        layer.backgroundColor = UIColor.black.cgColor
+        layer.videoGravity = .resizeAspect
 
-        let pipWindow = UIWindow(windowScene: scene)
-        pipWindow.windowLevel = .statusBar + 1
-        pipWindow.frame = CGRect(x: 0, y: 0, width: 120, height: 120)
-        pipWindow.backgroundColor = .clear
-        pipWindow.clipsToBounds = true
-        pipWindow.layer.cornerRadius = 20
-        pipWindow.isHidden = false
+        let window = UIWindow(windowScene: scene)
+        window.windowLevel = .statusBar + 1
+        window.frame = CGRect(x: 0, y: 0, width: 120, height: 120)
+        window.backgroundColor = .clear
+        window.clipsToBounds = true
+        window.layer.cornerRadius = 20
+        window.isHidden = false
 
-        let contentView = UIView(frame: pipWindow.bounds)
+        let contentView = UIView(frame: window.bounds)
         contentView.backgroundColor = UIColor.black.withAlphaComponent(0.85)
         contentView.layer.cornerRadius = 20
         contentView.clipsToBounds = true
-        pipWindow.addSubview(contentView)
-        pipWindow.layer.addSublayer(playerLayer)
+        window.addSubview(contentView)
+        window.layer.addSublayer(layer)
 
         let label = UILabel(frame: CGRect(x: 0, y: 30, width: 120, height: 40))
         label.text = "\(heartRate)"
@@ -154,14 +158,14 @@ class HeartRateViewModel: ObservableObject {
         subLabel.tag = 1002
         contentView.addSubview(subLabel)
 
-        let controller = AVPictureInPictureController(playerLayer: playerLayer)
+        let controller = AVPictureInPictureController(playerLayer: layer)
         controller?.canStartPictureInPictureAutomaticallyFromInline = true
         controller?.delegate = self
 
         pipPlayer = player
-        pipPlayerLayer = playerLayer
-        pipWindow.isHidden = true
-        pipWindow = pipWindow
+        pipPlayerLayer = layer
+        window.isHidden = true
+        pipWindow = window
         pipContentView = contentView
         pipController = controller
 
@@ -178,7 +182,7 @@ class HeartRateViewModel: ObservableObject {
     private func updatePipContent() {
         guard let view = pipContentView else { return }
         if let label = view.viewWithTag(1001) as? UILabel {
-            label.text = "\(heartRate > 0 ? heartRate : "--")"
+            label.text = heartRate > 0 ? "\(heartRate)" : "--"
         }
     }
 
@@ -256,9 +260,5 @@ extension HeartRateViewModel: AVPictureInPictureControllerDelegate {
     func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
         addLog("画中画启动失败: \(error.localizedDescription)")
         cleanupPipResources()
-    }
-
-    deinit {
-        stopPip()
     }
 }

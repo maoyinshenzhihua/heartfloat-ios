@@ -1,124 +1,167 @@
-Run ls -la
-total 56
-drwxr-xr-x  11 runner  staff   352 Apr  1 19:11 .
-drwxr-xr-x   3 runner  staff    96 Apr  1 19:11 ..
-drwxr-xr-x  14 runner  staff   448 Apr  1 19:11 .git
-drwxr-xr-x   3 runner  staff    96 Apr  1 19:11 .github
--rw-r--r--   1 runner  staff   350 Apr  1 19:11 ExportOptions.plist
-drwxr-xr-x   7 runner  staff   224 Apr  1 19:11 HeartFloat
-drwxr-xr-x   4 runner  staff   128 Apr  1 19:11 HeartFloat.xcodeproj
--rw-r--r--   1 runner  staff    50 Apr  1 19:11 Podfile
--rw-r--r--   1 runner  staff  1878 Apr  1 19:11 README.md
--rw-r--r--   1 runner  staff  9012 Apr  1 19:11 debug.log
--rw-r--r--   1 runner  staff  1159 Apr  1 19:11 project.yml
-total 0
-drwxr-xr-x   7 runner  staff  224 Apr  1 19:11 .
-drwxr-xr-x  11 runner  staff  352 Apr  1 19:11 ..
-drwxr-xr-x   3 runner  staff   96 Apr  1 19:11 App
-drwxr-xr-x   5 runner  staff  160 Apr  1 19:11 Resources
-drwxr-xr-x   5 runner  staff  160 Apr  1 19:11 Services
-drwxr-xr-x   3 runner  staff   96 Apr  1 19:11 ViewModels
-drwxr-xr-x   4 runner  staff  128 Apr  1 19:11 Views
-29s
 Run xcodebuild archive \
+  
+❌  /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/ViewModels/HeartRateViewModel.swift:261:5: deinitializers may only be declared within a class, actor, or noncopyable type
+** ARCHIVE FAILED **
+    deinit {
+    ^
+The following build commands failed:
+	CompileSwift normal arm64 (in target 'HeartFloat' from project 'HeartFloat')
+	SwiftCompile normal arm64 Compiling\ HeartFloatApp.swift,\ BleService.swift,\ HttpServerManager.swift,\ SettingsManager.swift,\ HeartRateViewModel.swift,\ MainView.swift,\ SettingsView.swift,\ GeneratedAssetSymbols.swift /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/App/HeartFloatApp.swift /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/Services/BleService.swift /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/Services/HttpServerManager.swift /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/Services/SettingsManager.swift /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/ViewModels/HeartRateViewModel.swift /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/Views/MainView.swift /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/Views/SettingsView.swift /Users/runner/Library/Developer/Xcode/DerivedData/HeartFloat-durkphbeakouvpfaarfpahllqaob/Build/Intermediates.noindex/ArchiveIntermediates/HeartFloat/IntermediateBuildFilesPath/HeartFloa
+(2 failures)
+❌  /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/ViewModels/HeartRateViewModel.swift:246:1: cannot declare conformance to 'NSObjectProtocol' in Swift; 'HeartRateViewModel' should inherit 'NSObject' instead
+extension HeartRateViewModel: AVPictureInPictureControllerDelegate {
+^
+⚠️  /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/ViewModels/HeartRateViewModel.swift:110:37: 'windows' was deprecated in iOS 15.0: Use UIWindowScene.windows on a relevant window scene instead
+            ?? UIApplication.shared.windows.first?.windowScene) else {
+                                    ^
+❌  /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/ViewModels/HeartRateViewModel.swift:164:9: cannot assign to value: 'pipWindow' is a 'let' constant
+        pipWindow = pipWindow
+        ^~~~~~~~~
+❌  /Users/runner/work/heartfloat-ios/heartfloat-ios/HeartFloat/ViewModels/HeartRateViewModel.swift:181:45: result values in '? :' expression have mismatching types 'Int' and 'String'
+            label.text = "\(heartRate > 0 ? heartRate : "--")"
+        ^~~
 ▸ Processing Info.plist
-▸ Linking HeartFloat
-▸ Generating 'HeartFloat.app.dSYM'
-▸ Touching HeartFloat.app (in target 'HeartFloat' from project 'HeartFloat')
-▸ Archive Succeeded
 0s
 Run echo "=== Archive structure ==="
 === Archive structure ===
-total 8
-drwxr-xr-x  5 runner  staff  160 Apr  1 19:12 .
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:12 ..
--rw-r--r--  1 runner  staff  873 Apr  1 19:12 Info.plist
-drwxr-xr-x@ 3 runner  staff   96 Apr  1 19:11 Products
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:12 dSYMs
-
-build/HeartFloat.xcarchive//Products:
-total 0
-drwxr-xr-x@ 3 runner  staff   96 Apr  1 19:11 .
-drwxr-xr-x  5 runner  staff  160 Apr  1 19:12 ..
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:11 Applications
-
-build/HeartFloat.xcarchive//Products/Applications:
-total 0
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:11 .
-drwxr-xr-x@ 3 runner  staff   96 Apr  1 19:11 ..
-drwxr-xr-x  6 runner  staff  192 Apr  1 19:12 HeartFloat.app
-
-build/HeartFloat.xcarchive//Products/Applications/HeartFloat.app:
-total 664
-drwxr-xr-x  6 runner  staff     192 Apr  1 19:12 .
-drwxr-xr-x  3 runner  staff      96 Apr  1 19:11 ..
--rw-r--r--  1 runner  staff   22639 Apr  1 19:12 Assets.car
--rwxr-xr-x  1 runner  staff  305600 Apr  1 19:12 HeartFloat
--rw-r--r--  1 runner  staff    1441 Apr  1 19:12 Info.plist
--rw-r--r--  1 runner  staff       8 Apr  1 19:12 PkgInfo
-
-build/HeartFloat.xcarchive//dSYMs:
-total 0
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:12 .
-drwxr-xr-x  5 runner  staff  160 Apr  1 19:12 ..
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:12 HeartFloat.app.dSYM
-
-build/HeartFloat.xcarchive//dSYMs/HeartFloat.app.dSYM:
-total 0
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:12 .
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:12 ..
-drwxr-xr-x  4 runner  staff  128 Apr  1 19:12 Contents
-
-
 === App bundle BEFORE Swift libs ===
-total 664
-drwxr-xr-x  6 runner  staff     192 Apr  1 19:12 .
-drwxr-xr-x  3 runner  staff      96 Apr  1 19:11 ..
--rw-r--r--  1 runner  staff   22639 Apr  1 19:12 Assets.car
--rwxr-xr-x  1 runner  staff  305600 Apr  1 19:12 HeartFloat
--rw-r--r--  1 runner  staff    1441 Apr  1 19:12 Info.plist
--rw-r--r--  1 runner  staff       8 Apr  1 19:12 PkgInfo
-1m 53s
+0s
 Run APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app"
-=== Step 1: Detect linked Swift libraries via otool ===
-Binary needs these Swift libraries:
-libswiftAVFoundation.dylib
-libswiftCore.dylib
-libswiftCoreAudio.dylib
-libswiftCoreFoundation.dylib
-libswiftCoreGraphics.dylib
-libswiftCoreImage.dylib
-libswiftCoreMIDI.dylib
-libswiftCoreMedia.dylib
-libswiftDarwin.dylib
-libswiftDataDetection.dylib
-libswiftDispatch.dylib
-libswiftFileProvider.dylib
-libswiftFoundation.dylib
-libswiftMetal.dylib
-libswiftNetwork.dylib
-libswiftOSLog.dylib
-libswiftObjectiveC.dylib
-libswiftQuartzCore.dylib
-libswiftUIKit.dylib
-libswiftUniformTypeIdentifiers.dylib
-libswiftXPC.dylib
-libswiftos.dylib
-libswiftsimd.dylib
-=== Step 2: Search for Swift dylibs on this system ===
-  ❌ /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/usr/lib/swift/iphoneos → directory does not exist
-  📂 /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos → found 0 .dylib files
-  ❌ /Applications/Xcode*.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos → directory does not exist
-Warning: Standard paths empty, using find to search...
-Error: Cannot locate any Swift dylibs on this system!
-/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/appletvsimulator/libswiftMapKit.dylib
-/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/appletvsimulator/libswiftPhotos.dylib
-/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/appletvsimulator/libswiftSceneKit.dylib
-/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/appletvsimulator/libswiftMetalKit.dylib
-/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/appletvsimulator/libswiftCoreImage.dylib
-/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/appletvsimulator/libswiftObjectiveC.dylib
-/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/appletvsimulator/libswiftVision.dylib
-/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/appletvsimulator/libswiftXCTest.dylib
-/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/appletvsimulator/libswiftCore.dylib
-/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/appletvsimulator/libswiftCoreGraphics.dylib
+  APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app"
+  BINARY="$APP_PATH/HeartFloat"
+  
+  if [ ! -f "$BINARY" ]; then
+    echo "::error::App binary not found"
+    exit 1
+  fi
+  
+  echo "=== Step 1: Detect linked Swift libraries via otool ==="
+  NEEDED_LIBS=$(otool -L "$BINARY" | grep -oE 'libswift[a-zA-Z0-9_]+\.dylib' | sort -u)
+  LIB_COUNT=$(echo "$NEEDED_LIBS" | grep -c .)
+  echo "Binary needs $LIB_COUNT Swift libraries:"
+  echo "$NEEDED_LIBS"
+  echo ""
+  
+  echo "=== Step 2: Locate active Xcode and its Swift libraries ==="
+  XCODE_PATH="$(xcode-select -p)"
+  ACTIVE_XCODE_APP="$(dirname "$(dirname "$(dirname "$XCODE_PATH")")")"
+  echo "Active Xcode developer dir : $XCODE_PATH"
+  echo "Active Xcode app           : $ACTIVE_XCODE_APP"
+  xcodebuild -version 2>&1 | head -2
+  
+  FOUND_BASE_DIR=""
+  
+  echo ""
+  echo "--- Strategy A: Toolchain path patterns ---"
+  TC_PATTERNS=(
+    "$XCODE_PATH/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/iphoneos"
+    "$XCODE_PATH/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.9/iphoneos"
+    "$XCODE_PATH/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.10/iphoneos"
+    "$XCODE_PATH/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos"
+  )
+  for PATTERN in "${TC_PATTERNS[@]}"; do
+    if [ -d "$PATTERN" ]; then
+      COUNT=$(ls -1 "$PATTERN"/libswiftCore.dylib 2>/dev/null | wc -l | tr -d ' ')
+      if [ "$COUNT" -gt 0 ]; then
+        TOTAL=$(ls -1 "$PATTERN"/libswift*.dylib 2>/dev/null | wc -l | tr -d ' ')
+        echo "  ✅ $PATTERN → $TOTAL .dylib files (libswiftCore found!)"
+        FOUND_BASE_DIR="$PATTERN"
+        break
+      else
+        echo "  📂 $PATTERN → exists but no libswiftCore.dylib"
+      fi
+    fi
+  done
+  
+  if [ -z "$FOUND_BASE_DIR" ]; then
+    echo ""
+    echo "--- Strategy B: Find in active Xcode only ---"
+    CANDIDATE_DIRS=$(find "$ACTIVE_XCODE_APP" -path "*iphoneos*" -name "libswiftCore.dylib" -type f 2>/dev/null)
+    if [ -n "$CANDIDATE_DIRS" ]; then
+      echo "  Found candidates:"
+      echo "$CANDIDATE_DIRS" | while read -r CAND; do
+        DIR_NAME="$(dirname "$CAND")"
+        LIB_COUNT_IN_DIR=$(ls -1 "$DIR_NAME"/libswift*.dylib 2>/dev/null | wc -l | tr -d ' ')
+        echo "    $DIR_NAME ($LIB_COUNT_IN_DIR dylibs)"
+      done
+      BEST_CANDIDATE=$(echo "$CANDIDATE_DIRS" | head -1)
+      FOUND_BASE_DIR="$(dirname "$BEST_CANDIDATE")"
+      echo "  ✅ Selected: $FOUND_BASE_DIR"
+    fi
+  fi
+  
+  if [ -z "$FOUND_BASE_DIR" ]; then
+    echo ""
+    echo "--- Strategy C: Broad find, filter out simulator/tvos/watchos ---"
+    CANDIDATE_DIRS=$(find /Applications/Xcode*.app \
+      -path "*iphoneos*" \
+      -not -path "*simulator*" \
+      -not -path "*appletv*" \
+      -not -path "*watchos*" \
+      -name "libswiftCore.dylib" -type f 2>/dev/null)
+  
+    if [ -z "$CANDIDATE_DIRS" ]; then
+      echo "::error::Cannot locate any iPhoneOS Swift dylibs!"
+      echo "All Swift dylibs found on system (for debugging):"
+      find /Applications/Xcode*.app -name "libswiftCore.dylib" -type f 2>/dev/null | head -10
+      exit 1
+    fi
+  
+    echo "  Candidates (non-simulator):"
+    echo "$CANDIDATE_DIRS"
+  
+    BEST_CANDIDATE=$(echo "$CANDIDATE_DIRS" | grep "$ACTIVE_XCODE_APP" | head -1)
+    if [ -z "$BEST_CANDIDATE" ]; then
+      BEST_CANDIDATE=$(echo "$CANDIDATE_DIRS" | head -1)
+    fi
+    FOUND_BASE_DIR="$(dirname "$BEST_CANDIDATE")"
+    echo "  ✅ Selected: $FOUND_BASE_DIR"
+  fi
+  
+  echo ""
+  echo "=== Using Swift lib source dir: $FOUND_BASE_DIR ==="
+  ls -lh "$FOUND_BASE_DIR"/libswift*.dylib 2>/dev/null | head -40
+  echo ""
+  
+  mkdir -p "$APP_PATH/Frameworks"
+  
+  EMBEDDED_COUNT=0
+  MISSING_LIBS=()
+  
+  while IFS= read -r LIB; do
+    [ -z "$LIB" ] && continue
+    SRC="$FOUND_BASE_DIR/$LIB"
+    if [ -f "$SRC" ]; then
+      cp "$SRC" "$APP_PATH/Frameworks/"
+      chmod 755 "$APP_PATH/Frameworks/$LIB"
+      SIZE=$(du -h "$APP_PATH/Frameworks/$LIB" | cut -f1)
+      echo "  ✅ Embedded: $LIB ($SIZE)"
+      EMBEDDED_COUNT=$((EMBEDDED_COUNT + 1))
+    else
+      echo "  ⚠️ Not found: $LIB"
+      MISSING_LIBS+=("$LIB")
+    fi
+  done <<< "$NEEDED_LIBS"
+  
+  echo ""
+  echo "=== Results ==="
+  echo "  Embedded: $EMBEDDED_COUNT / $LIB_COUNT libraries"
+  
+  if [ ${#MISSING_LIBS[@]} -gt 0 ]; then
+    echo "  Missing (${#MISSING_LIBS[@]}):"
+    for MLIB in "${MISSING_LIBS[@]}"; do
+      echo "    - $MLIB"
+    done
+  fi
+  
+  echo ""
+  echo "=== Frameworks directory contents ==="
+  ls -lh "$APP_PATH/Frameworks/"
+  
+  if [ "$EMBEDDED_COUNT" -eq 0 ]; then
+    echo "::error::Failed to embed ANY Swift libraries. IPA will be incomplete."
+    exit 1
+  fi
+  shell: /bin/bash -e {0}
+Error: App binary not found
 Error: Process completed with exit code 1.
