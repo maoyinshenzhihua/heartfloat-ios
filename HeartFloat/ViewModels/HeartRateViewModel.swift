@@ -26,6 +26,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
     private var generatedVideoURL: URL?
     private var looper: AVPlayerLooper?
     private var queuePlayer: AVQueuePlayer?
+    private var pipKvoObserver: NSKeyValueObservation?
 
     override init() {
         super.init()
@@ -35,6 +36,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
 
     deinit {
         stopPip()
+        pipKvoObserver?.invalidate()
     }
 
     private func setupBindings() {
@@ -87,15 +89,19 @@ class HeartRateViewModel: NSObject, ObservableObject {
             addLog("请先连接手环")
             return
         }
-        guard let videoURL = generatedVideoURL else {
-            addLog("视频资源未就绪")
+        guard let url = generatedVideoURL else {
+            addLog("视频资源未就绪，正在重新生成...")
+            generateBlankVideo()
             return
         }
-
-        setupPipPlayer(videoURL: videoURL)
+        addLog("视频已就绪: \(url.lastPathComponent)")
+        setupPipPlayer(videoURL: url)
     }
 
     func stopPip() {
+        pipKvoObserver?.invalidate()
+        pipKvoObserver = nil
+
         isPipActive = false
         pipController?.delegate = nil
         pipController?.stopPictureInPicture()
@@ -123,8 +129,15 @@ class HeartRateViewModel: NSObject, ObservableObject {
         let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("blank_pip_video.mp4")
 
         if FileManager.default.fileExists(atPath: url.path) {
-            generatedVideoURL = url
-            return
+            let attr = try? FileManager.default.attributesOfItem(atPath: url.path)
+            let fileSize = attr?[.size] as? Int64 ?? 0
+            if fileSize > 1000 {
+                generatedVideoURL = url
+                addLog("PiP 视频缓存已存在 (\(fileSize) bytes)")
+                return
+            } else {
+                try? FileManager.default.removeItem(at: url)
+            }
         }
 
         let size = CGSize(width: 120, height: 120)
@@ -138,7 +151,10 @@ class HeartRateViewModel: NSObject, ObservableObject {
             ]
         ]
 
-        guard let writer = try? AVAssetWriter(outputURL: url, fileType: .mp4) else { return }
+        guard let writer = try? AVAssetWriter(outputURL: url, fileType: .mp4) else {
+            addLog("创建 AVAssetWriter 失败")
+            return
+        }
         let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
         input.expectsMediaDataInRealTime = true
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(
@@ -154,37 +170,31 @@ class HeartRateViewModel: NSObject, ObservableObject {
         writer.startWriting()
         writer.startSession(atSourceTime: .zero)
 
-        var frameCount = 0
         let totalFrames = 30
+        var frameCount = 0
 
-        func appendFrame() {
-            guard input.isReadyForMoreMediaData, frameCount < totalFrames else {
-                if frameCount >= totalFrames {
-                    input.markAsFinished()
-                    writer.finishWriting { [weak self] in
-                        switch writer.status {
-                        case .completed:
-                            self?.generatedVideoURL = url
-                        case .failed:
-                            self?.addLog("生成视频失败: \(writer.error?.localizedDescription ?? "未知错误")")
-                        default:
-                            break
-                        }
-                    }
-                }
-                return
+        while frameCount < totalFrames {
+            guard input.isReadyForMoreMediaData else {
+                Thread.sleep(forTimeInterval: 0.01)
+                continue
             }
 
-            guard let pool = adaptor.pixelBufferPool else { return }
+            guard let pool = adaptor.pixelBufferPool else {
+                addLog("无法获取 pixel buffer pool")
+                return
+            }
             var pixelBuffer: CVPixelBuffer?
             CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &pixelBuffer)
-            guard let buffer = pixelBuffer else { return }
+            guard let buffer = pixelBuffer else {
+                addLog("无法创建 pixel buffer (frame \(frameCount))")
+                return
+            }
 
             CVPixelBufferLockBaseAddress(buffer, [])
             let context = CGContext(
                 data: CVPixelBufferGetBaseAddress(buffer),
-                width: Int(size.height),
-                height: Int(size.width),
+                width: Int(size.width),
+                height: Int(size.height),
                 bitsPerComponent: 8,
                 bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
                 space: CGColorSpaceCreateDeviceRGB(),
@@ -195,13 +205,34 @@ class HeartRateViewModel: NSObject, ObservableObject {
             CVPixelBufferUnlockBaseAddress(buffer, [])
 
             let presentationTime = CMTime(value: Int64(frameCount), timescale: 30)
-            adaptor.append(buffer, withPresentationTime: presentationTime)
+            if !adaptor.append(buffer, withPresentationTime: presentationTime) {
+                addLog("追加帧 \(frameCount) 失败")
+                CVPixelBufferRelease(buffer)
+                return
+            }
+            CVPixelBufferRelease(buffer)
             frameCount += 1
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { appendFrame() }
         }
 
-        appendFrame()
+        input.markAsFinished()
+
+        let sem = DispatchSemaphore(value: 0)
+        writer.finishWriting {
+            sem.signal()
+        }
+        sem.wait()
+
+        switch writer.status {
+        case .completed:
+            generatedVideoURL = url
+            let attr = try? FileManager.default.attributesOfItem(atPath: url.path)
+            let fileSize = attr?[.size] as? Int64 ?? 0
+            addLog("PiP 视频生成成功 (\(totalFrames) 帧, \(fileSize) bytes)")
+        case .failed:
+            addLog("生成视频失败: \(writer.error?.localizedDescription ?? "未知错误")")
+        default:
+            addLog("生成视频状态异常: \(writer.status.rawValue)")
+        }
     }
 
     private func setupPipPlayer(videoURL: URL) {
@@ -212,45 +243,29 @@ class HeartRateViewModel: NSObject, ObservableObject {
             return
         }
 
+        addLog("获取到 keyWindow: \(keyWindow.bounds.size)")
+
         let playerItem = AVPlayerItem(url: videoURL)
         let qPlayer = AVQueuePlayer(playerItem: playerItem)
         qPlayer.isMuted = true
         qPlayer.preventsDisplaySleepDuringVideoPlayback = false
+        qPlayer.allowsExternalPlayback = false
 
         let playerLooper = AVPlayerLooper(player: qPlayer, templateItem: playerItem)
 
         let layer = AVPlayerLayer(player: qPlayer)
-        layer.frame = CGRect(x: 0, y: 0, width: 4, height: 4)
+        layer.frame = CGRect(x: 0, y: 0, width: 40, height: 40)
         layer.backgroundColor = UIColor.black.cgColor
         layer.videoGravity = .resizeAspectFill
-        layer.zPosition = -1
 
-        let playerContainer = UIView(frame: CGRect(x: keyWindow.bounds.width - 8, y: keyWindow.bounds.height - 8, width: 4, height: 4))
-        playerContainer.backgroundColor = .clear
+        let playerContainer = UIView(frame: CGRect(x: keyWindow.bounds.midX - 20, y: keyWindow.bounds.midY - 20, width: 40, height: 40))
+        playerContainer.backgroundColor = UIColor.black.withAlphaComponent(0.01)
         playerContainer.clipsToBounds = true
         playerContainer.layer.addSublayer(layer)
+        playerContainer.accessibilityLabel = "pip_player"
         keyWindow.addSubview(playerContainer)
 
-        let overlay = UIView(frame: CGRect(x: 20, y: 80, width: 120, height: 120))
-        overlay.backgroundColor = UIColor.black.withAlphaComponent(0.85)
-        overlay.layer.cornerRadius = 24
-        overlay.clipsToBounds = true
-        overlay.alpha = 0
-        keyWindow.addSubview(overlay)
-
-        let statusLabel = UILabel(frame: CGRect(x: 0, y: 28, width: 120, height: 44))
-        statusLabel.text = "\(heartRate)"
-        statusLabel.textColor = .white
-        statusLabel.font = .systemFont(ofSize: 36, weight: .bold)
-        statusLabel.textAlignment = .center
-        overlay.addSubview(statusLabel)
-
-        let subLabel = UILabel(frame: CGRect(x: 0, y: 72, width: 120, height: 16))
-        subLabel.text = "BPM"
-        subLabel.textColor = .white.withAlphaComponent(0.7)
-        subLabel.font = .systemFont(ofSize: 12, weight: .medium)
-        subLabel.textAlignment = .center
-        overlay.addSubview(subLabel)
+        addLog("Player 已添加到窗口中心, 开始播放...")
 
         let controller = AVPictureInPictureController(playerLayer: layer)
         controller?.canStartPictureInPictureAutomaticallyFromInline = true
@@ -261,23 +276,34 @@ class HeartRateViewModel: NSObject, ObservableObject {
         queuePlayer = qPlayer
         pipPlayerLayer = layer
         pipPlayerView = playerContainer
-        pipOverlayView = overlay
-        pipStatusLabel = statusLabel
-        pipSubLabel = subLabel
         pipController = controller
 
         qPlayer.play()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self = self else { return }
-            if self.pipController?.isPictureInPicturePossible == true {
+        pipKvoObserver = controller?.observe(\.isPictureInPicturePossible, options: [.initial, .new]) { [weak self] _, change in
+            guard let self = self, let possible = change.newValue, possible else { return }
+            if possible && self.pipController != nil {
+                self.addLog("PiP 已就绪! 正在启动...")
                 self.pipController?.startPictureInPicture()
-                self.addLog("正在启动画中画...")
-            } else {
-                self.addLog("画中画暂不可用，请确保应用在后台运行")
+                self.hidePlayerContainer()
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+            guard let self = self, self.pipController != nil else { return }
+            if !self.isPipActive {
+                self.addLog("PiP 超时未就绪, 当前状态:")
+                self.addLog("  isPictureInPicturePossible: \(self.pipController?.isPictureInPicturePossible ?? false)")
+                self.addLog("  player.timeControlStatus: \(self.pipPlayer?.timeControlStatus.rawValue ?? -1)")
+                self.addLog("  player.currentItem: \(self.pipPlayer?.currentItem != nil ? "有" : "无")")
                 self.cleanupPipResources()
             }
         }
+    }
+
+    private func hidePlayerContainer() {
+        pipPlayerView?.alpha = 0
+        pipPlayerView?.frame = CGRect(x: -100, y: -100, width: 1, height: 1)
     }
 
     private func updatePipContent() {
@@ -285,14 +311,14 @@ class HeartRateViewModel: NSObject, ObservableObject {
     }
 
     private func cleanupPipResources() {
+        pipKvoObserver?.invalidate()
+        pipKvoObserver = nil
         looper = nil
         queuePlayer?.pause()
         queuePlayer = nil
         pipPlayer = nil
-
         pipPlayerLayer?.removeFromSuperlayer()
         pipPlayerLayer = nil
-
         pipPlayerView?.removeFromSuperview()
         pipPlayerView = nil
         pipOverlayView?.removeFromSuperview()
@@ -350,9 +376,8 @@ class HeartRateViewModel: NSObject, ObservableObject {
 
 extension HeartRateViewModel: AVPictureInPictureControllerDelegate {
     func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        pipPlayerView?.alpha = 0
-        pipOverlayView?.alpha = 0
         isPipActive = true
+        hidePlayerContainer()
         addLog("画中画已启动 ✅")
     }
 
