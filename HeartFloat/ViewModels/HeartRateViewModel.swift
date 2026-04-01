@@ -154,7 +154,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
         writer.startWriting()
         writer.startSession(atSourceTime: .zero)
 
-        let frameCount = 0
+        var frameCount = 0
         let totalFrames = 30
 
         func appendFrame() {
