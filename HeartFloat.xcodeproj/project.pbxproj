@@ -14,6 +14,7 @@
 		2A6E5EDF2C4F5E5D00A1F7FF /* HeartRateViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6E5ED92C4F5E5D00A1F7F3 /* HeartRateViewModel.swift */; };
 		2A6E5EE02C4F5E5D00A1F7FF /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6E5ED92C4F5E5D00A1F7F4 /* MainView.swift */; };
 		2A6E5EE12C4F5E5D00A1F7FF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6E5ED92C4F5E5D00A1F7F5 /* SettingsView.swift */; };
+		2A6E5EE32C4F5E5D00A1F800 /* HeartRateVideoRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6E5ED92C4F5E5D00A1F800 /* HeartRateVideoRenderer.swift */; };
 		2A6E5EE22C4F5E5D00A1F7FF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A6E5EE32C4F5E5D00A1F7FF /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -27,6 +28,7 @@
 		2A6E5ED92C4F5E5D00A1F7F4 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/MainView.swift; sourceTree = "<group>"; };
 		2A6E5ED92C4F5E5D00A1F7F5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/SettingsView.swift; sourceTree = "<group>"; };
 		2A6E5ED92C4F5E5D00A1F7F6 /* BleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/BleService.swift; sourceTree = "<group>"; };
+		2A6E5ED92C4F5E5D00A1F800 /* HeartRateVideoRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/HeartRateVideoRenderer.swift; sourceTree = "<group>"; };
 		2A6E5ED92C4F5E5D00A1F7F7 /* HeartFloat.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Resources/HeartFloat.entitlements; sourceTree = "<group>"; };
 		2A6E5EE32C4F5E5D00A1F7FF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -58,6 +60,7 @@
 				2A6E5ED92C4F5E5D00A1F7F0 /* Info.plist */,
 				2A6E5ED92C4F5E5D00A1F7F7 /* HeartFloat.entitlements */,
 				2A6E5ED92C4F5E5D00A1F7F6 /* BleService.swift */,
+				2A6E5ED92C4F5E5D00A1F800 /* HeartRateVideoRenderer.swift */,
 				2A6E5ED92C4F5E5D00A1F7F1 /* HttpServerManager.swift */,
 				2A6E5ED92C4F5E5D00A1F7F2 /* SettingsManager.swift */,
 				2A6E5ED92C4F5E5D00A1F7F3 /* HeartRateViewModel.swift */,
@@ -151,6 +154,7 @@
 				2A6E5EDF2C4F5E5D00A1F7FF /* HeartRateViewModel.swift in Sources */,
 				2A6E5EE02C4F5E5D00A1F7FF /* MainView.swift in Sources */,
 				2A6E5EE12C4F5E5D00A1F7FF /* SettingsView.swift in Sources */,
+				2A6E5EE32C4F5E5D00A1F800 /* HeartRateVideoRenderer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
