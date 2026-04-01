@@ -132,6 +132,12 @@ struct MainView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.secondary)
                 Spacer()
+                Button(viewModel.isLogPaused ? "继续" : "暂停") {
+                    viewModel.toggleLogPause()
+                }
+                .font(.system(size: 12))
+                .foregroundColor(viewModel.isLogPaused ? .green : .orange)
+
                 Button("复制") {
                     viewModel.copyLogs()
                 }
@@ -147,15 +153,17 @@ struct MainView: View {
 
             ScrollView {
                 ScrollViewReader { proxy in
-                    Text(viewModel.logMessages.joined(separator: "\n"))
+                    Text(displayedLogText)
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundColor(Color(white: 0.33))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(8)
                         .id("logBottom")
                         .onChange(of: viewModel.logMessages.count) { _ in
-                            withAnimation {
-                                proxy.scrollTo("logBottom", anchor: .bottom)
+                            if !viewModel.isLogPaused {
+                                withAnimation(.linear(duration: 0.15)) {
+                                    proxy.scrollTo("logBottom", anchor: .bottom)
+                                }
                             }
                         }
                 }
@@ -165,6 +173,14 @@ struct MainView: View {
             .cornerRadius(8)
         }
         .padding(.top, 16)
+    }
+
+    private var displayedLogText: String {
+        if viewModel.isLogPaused, let pausedSnapshot = viewModel.pausedLogSnapshot {
+            return pausedSnapshot
+        }
+        let recent = viewModel.logMessages.suffix(100)
+        return recent.joined(separator: "\n")
     }
 
     private var hintSection: some View {

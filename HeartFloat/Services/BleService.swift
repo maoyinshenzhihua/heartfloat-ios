@@ -96,6 +96,9 @@ class BleService: NSObject, ObservableObject {
         }
     }
 
+    private var lastLoggedHeartRate: Int = -1
+    private var lastLogTime: Date = .distantPast
+
     private func parseHeartRateData(_ data: Data) {
         guard data.count >= 2 else { return }
 
@@ -116,8 +119,17 @@ class BleService: NSObject, ObservableObject {
         if heartRate >= 30 && heartRate <= 220 {
             currentHeartRate = heartRate
             isContact = hasSensorContact
-            let contactStatus = hasSensorContact ? "(已接触)" : "(未接触)"
-            addLog("心率: \(heartRate) BPM \(contactStatus)")
+
+            let now = Date()
+            let timeSinceLastLog = now.timeIntervalSince(lastLogTime)
+            let rateChanged = heartRate != lastLoggedHeartRate
+
+            if rateChanged || timeSinceLastLog > 10 {
+                let contactStatus = hasSensorContact ? "(已接触)" : "(未接触)"
+                addLog("心率: \(heartRate) BPM \(contactStatus)")
+                lastLoggedHeartRate = heartRate
+                lastLogTime = now
+            }
         }
     }
 }
