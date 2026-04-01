@@ -42,29 +42,87 @@ jobs:
             OTHER_LDFLAGS="" \
             | xcpretty
 
-      - name: Show archive contents
+      - name: Show archive contents (before fix)
         run: |
           echo "=== Archive structure ==="
-          ls -laR build/HeartFloat.xcarchive/ || echo "Archive not found!"
-          echo -e "\n=== App bundle contents ==="
-          ls -laR build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/ 2>/dev/null || echo "App not found!"
-          echo -e "\n=== Check for embedded frameworks ==="
-          find build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app -name "*.framework" -o -name "*.dylib" 2>/dev/null || echo "No embedded frameworks/dylibs"
+          ls -laR build/HeartFloat.xcarchive/ 2>/dev/null | head -40 || echo "Archive not found!"
+          echo -e "\n=== App bundle BEFORE Swift libs ==="
+          ls -laR build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/ 2>/dev/null | head -30
+
+      - name: Embed Swift standard libraries
+        run: |
+          APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app"
+          BINARY="$APP_PATH/HeartFloat"
+
+          if [ ! -f "$BINARY" ]; then
+            echo "::error::App binary not found"
+            exit 1
+          fi
+
+          echo "=== Detecting linked Swift libraries ==="
+          otool -L "$BINARY" | grep -i swift || echo "No swift libs found in otool output"
+
+          SWIFT_LIB_DIR="$(xcrun --sdk iphoneos --show-sdk-path)/usr/lib/swift/iphoneos"
+          echo "Swift lib source dir: $SWIFT_LIB_DIR"
+          ls "$SWIFT_LIB_DIR"/libswift*.dylib 2>/dev/null | head -20 || echo "No swift dylibs in SDK!"
+
+          mkdir -p "$APP_PATH/Frameworks"
+
+          REQUIRED_LIBS=(
+            "libswiftCore.dylib"
+            "libswiftCoreFoundation.dylib"
+            "libswiftFoundation.dylib"
+            "libswiftObjectiveC.dylib"
+            "libswiftSwiftOnoneSupport.dylib"
+            "libswiftDispatch.dylib"
+            "libswiftDarwin.dylib"
+            "libswiftMath.dylib"
+            "libswiftUIKit.dylib"
+            "libswiftCoreGraphics.dylib"
+            "libswiftQuartzCore.dylib"
+          )
+
+          EMBEDDED_COUNT=0
+          for LIB in "${REQUIRED_LIBS[@]}"; do
+            SRC="$SWIFT_LIB_DIR/$LIB"
+            if [ -f "$SRC" ]; then
+              cp "$SRC" "$APP_PATH/Frameworks/"
+              chmod 755 "$APP_PATH/Frameworks/$LIB"
+              echo "  ✅ Embedded: $LIB ($(du -h "$APP_PATH/Frameworks/$LIB" | cut -f1))"
+              EMBEDDED_COUNT=$((EMBEDDED_COUNT + 1))
+            else
+              echo "  ⚠️ Not found: $LIB"
+            fi
+          done
+
+          echo ""
+          echo "=== Embedded $EMBEDDED_COUNT Swift libraries ==="
+          echo "=== Frameworks directory contents ==="
+          ls -lh "$APP_PATH/Frameworks/"
+
+      - name: Show archive contents (after fix)
+        run: |
+          echo "=== App bundle AFTER Swift libs ==="
+          ls -laR build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/
+          echo -e "\n=== Total app bundle size ==="
+          du -sh build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/
 
       - name: Verify app binary exists
         run: |
           APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/HeartFloat"
-          if [ ! -f "$APP_PATH" ]; then
-            echo "::error::App binary not found at $APP_PATH"
-            echo "=== Searching for binary ==="
-            find build/HeartFloat.xcarchive -type f -name "HeartFloat" -o -name "*.appex" 2>/dev/null
-            exit 1
-          fi
           BINARY_SIZE=$(stat -f%z "$APP_PATH")
           echo "App binary size: $BINARY_SIZE bytes"
           if [ "$BINARY_SIZE" -lt 10000 ]; then
-            echo "::warning::App binary seems too small ($BINARY_SIZE bytes), build may be incomplete"
+            echo "::warning::App binary seems too small ($BINARY_SIZE bytes)"
           fi
+
+          FRAMEWORKS_DIR="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/Frameworks"
+          if [ ! -d "$FRAMEWORKS_DIR" ] || [ -z "$(ls -A "$FRAMEWORKS_DIR" 2>/dev/null)" ]; then
+            echo "::error::Frameworks directory is empty or missing! IPA will be incomplete."
+            exit 1
+          fi
+          LIB_COUNT=$(ls -1 "$FRAMEWORKS_DIR"/*.dylib 2>/dev/null | wc -l | tr -d ' ')
+          echo "Embedded dylibs count: $LIB_COUNT"
 
       - name: Package IPA manually
         run: |
@@ -77,11 +135,8 @@ jobs:
             exit 1
           fi
 
-          echo "Copying app bundle..."
+          echo "Copying app bundle with all frameworks..."
           cp -R "$APP_SRC" build/ipa/Payload/
-
-          echo "Verifying copied app..."
-          ls -laR build/ipa/Payload/HeartFloat.app/ | head -50
 
           echo "Creating IPA..."
           cd build/ipa
@@ -96,8 +151,10 @@ jobs:
           mv build/HeartFloat-unsigned.ipa build/HeartFloat.ipa
           echo "Final IPA:"
           ls -lh build/HeartFloat.ipa
-          echo "IPA contents:"
-          unzip -l build/HeartFloat.ipa | head -30
+          echo -e "\n=== Full IPA contents ==="
+          unzip -l build/HeartFloat.ipa
+          echo -e "\n=== IPA file count ==="
+          unzip -l build/HeartFloat.ipa | tail -3
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
