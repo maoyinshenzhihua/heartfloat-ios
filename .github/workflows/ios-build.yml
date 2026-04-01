@@ -27,40 +27,39 @@ jobs:
           ls -la HeartFloat/
           ls -la HeartFloat/Resources/
 
-      - name: Build Archive
+      - name: Build App
         run: |
-          xcodebuild archive \
-            -project HeartFloat.xcodeproj \
+          xcodebuild -project HeartFloat.xcodeproj \
             -scheme HeartFloat \
             -configuration Release \
-            -archivePath build/HeartFloat.xcarchive \
+            -sdk iphoneos \
             -destination 'generic/platform=iOS' \
+            build \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            DSTROOT=$PWD/build \
+            INSTALL_PATH=/Applications
 
-      - name: List Archive Contents
+      - name: Find Built App
+        id: find-app
         run: |
-          ls -la build/
-          ls -la build/HeartFloat.xcarchive/
-          ls -la build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "HeartFloat.app" -type d 2>/dev/null | head -1)
+          echo "app_path=$APP_PATH" >> $GITHUB_OUTPUT
+          echo "Found app at: $APP_PATH"
+          ls -la "$APP_PATH"
 
-      - name: Create IPA Manually
+      - name: Create IPA
         run: |
           mkdir -p build/ipa
-          APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app"
-          
-          if [ -d "$APP_PATH" ]; then
-            cd build/ipa
-            mkdir -p Payload
-            cp -r "../HeartFloat.xcarchive/Products/Applications/HeartFloat.app" Payload/
-            zip -r HeartFloat.ipa Payload
-            rm -rf Payload
-            ls -la
-          else
-            echo "App not found!"
-            exit 1
-          fi
+          cd build/ipa
+          mkdir -p Payload
+          cp -r "${{ steps.find-app.outputs.app_path }}" Payload/
+          ls -la Payload/
+          ls -la Payload/HeartFloat.app/
+          zip -r HeartFloat.ipa Payload
+          rm -rf Payload
+          ls -la
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
