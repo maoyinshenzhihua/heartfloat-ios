@@ -61,47 +61,90 @@ jobs:
 
           echo "=== Step 1: Detect linked Swift libraries via otool ==="
           NEEDED_LIBS=$(otool -L "$BINARY" | grep -oE 'libswift[a-zA-Z0-9_]+\.dylib' | sort -u)
-          echo "Binary needs these Swift libraries:"
+          LIB_COUNT=$(echo "$NEEDED_LIBS" | grep -c .)
+          echo "Binary needs $LIB_COUNT Swift libraries:"
           echo "$NEEDED_LIBS"
           echo ""
 
-          echo "=== Step 2: Search for Swift dylibs on this system ==="
-          SEARCH_PATHS=(
-            "$(xcrun --sdk iphoneos --show-sdk-path)/usr/lib/swift/iphoneos"
-            "$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos"
-            "/Applications/Xcode*.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos"
-          )
+          echo "=== Step 2: Locate active Xcode and its Swift libraries ==="
+          XCODE_PATH="$(xcode-select -p)"
+          ACTIVE_XCODE_APP="$(dirname "$(dirname "$(dirname "$XCODE_PATH")")")"
+          echo "Active Xcode developer dir : $XCODE_PATH"
+          echo "Active Xcode app           : $ACTIVE_XCODE_APP"
+          xcodebuild -version 2>&1 | head -2
 
           FOUND_BASE_DIR=""
-          for SEARCH_PATH in "${SEARCH_PATHS[@]}"; do
-            if [ -d "$SEARCH_PATH" ]; then
-              DYLIB_COUNT=$(ls -1 "$SEARCH_PATH"/libswift*.dylib 2>/dev/null | wc -l | tr -d ' ')
-              echo "  📂 $SEARCH_PATH → found $DYLIB_COUNT .dylib files"
-              if [ "$DYLIB_COUNT" -gt 0 ]; then
-                FOUND_BASE_DIR="$SEARCH_PATH"
+
+          echo ""
+          echo "--- Strategy A: Toolchain path patterns ---"
+          TC_PATTERNS=(
+            "$XCODE_PATH/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/iphoneos"
+            "$XCODE_PATH/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.9/iphoneos"
+            "$XCODE_PATH/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.10/iphoneos"
+            "$XCODE_PATH/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos"
+          )
+          for PATTERN in "${TC_PATTERNS[@]}"; do
+            if [ -d "$PATTERN" ]; then
+              COUNT=$(ls -1 "$PATTERN"/libswiftCore.dylib 2>/dev/null | wc -l | tr -d ' ')
+              if [ "$COUNT" -gt 0 ]; then
+                TOTAL=$(ls -1 "$PATTERN"/libswift*.dylib 2>/dev/null | wc -l | tr -d ' ')
+                echo "  ✅ $PATTERN → $TOTAL .dylib files (libswiftCore found!)"
+                FOUND_BASE_DIR="$PATTERN"
                 break
+              else
+                echo "  📂 $PATTERN → exists but no libswiftCore.dylib"
               fi
-            else
-              echo "  ❌ $SEARCH_PATH → directory does not exist"
             fi
           done
 
           if [ -z "$FOUND_BASE_DIR" ]; then
-            echo "::warning::Standard paths empty, using find to search..."
-            CANDIDATE=$(find /Applications/Xcode*.app -path "*/swift/iphoneos/libswiftCore.dylib" -type f 2>/dev/null | head -1)
-            if [ -n "$CANDIDATE" ]; then
-              FOUND_BASE_DIR="$(dirname "$CANDIDATE")"
-              echo "  🔍 Found via find: $FOUND_BASE_DIR"
-            else
-              echo "::error::Cannot locate any Swift dylibs on this system!"
-              find /Applications/Xcode*.app -name "libswift*.dylib" -type f 2>/dev/null | head -10
+            echo ""
+            echo "--- Strategy B: Find in active Xcode only ---"
+            CANDIDATE_DIRS=$(find "$ACTIVE_XCODE_APP" -path "*iphoneos*" -name "libswiftCore.dylib" -type f 2>/dev/null)
+            if [ -n "$CANDIDATE_DIRS" ]; then
+              echo "  Found candidates:"
+              echo "$CANDIDATE_DIRS" | while read -r CAND; do
+                DIR_NAME="$(dirname "$CAND")"
+                LIB_COUNT_IN_DIR=$(ls -1 "$DIR_NAME"/libswift*.dylib 2>/dev/null | wc -l | tr -d ' ')
+                echo "    $DIR_NAME ($LIB_COUNT_IN_DIR dylibs)"
+              done
+              BEST_CANDIDATE=$(echo "$CANDIDATE_DIRS" | head -1)
+              FOUND_BASE_DIR="$(dirname "$BEST_CANDIDATE")"
+              echo "  ✅ Selected: $FOUND_BASE_DIR"
+            fi
+          fi
+
+          if [ -z "$FOUND_BASE_DIR" ]; then
+            echo ""
+            echo "--- Strategy C: Broad find, filter out simulator/tvos/watchos ---"
+            CANDIDATE_DIRS=$(find /Applications/Xcode*.app \
+              -path "*iphoneos*" \
+              -not -path "*simulator*" \
+              -not -path "*appletv*" \
+              -not -path "*watchos*" \
+              -name "libswiftCore.dylib" -type f 2>/dev/null)
+
+            if [ -z "$CANDIDATE_DIRS" ]; then
+              echo "::error::Cannot locate any iPhoneOS Swift dylibs!"
+              echo "All Swift dylibs found on system (for debugging):"
+              find /Applications/Xcode*.app -name "libswiftCore.dylib" -type f 2>/dev/null | head -10
               exit 1
             fi
+
+            echo "  Candidates (non-simulator):"
+            echo "$CANDIDATE_DIRS"
+
+            BEST_CANDIDATE=$(echo "$CANDIDATE_DIRS" | grep "$ACTIVE_XCODE_APP" | head -1)
+            if [ -z "$BEST_CANDIDATE" ]; then
+              BEST_CANDIDATE=$(echo "$CANDIDATE_DIRS" | head -1)
+            fi
+            FOUND_BASE_DIR="$(dirname "$BEST_CANDIDATE")"
+            echo "  ✅ Selected: $FOUND_BASE_DIR"
           fi
 
           echo ""
           echo "=== Using Swift lib source dir: $FOUND_BASE_DIR ==="
-          ls -lh "$FOUND_BASE_DIR"/libswift*.dylib 2>/dev/null | head -30
+          ls -lh "$FOUND_BASE_DIR"/libswift*.dylib 2>/dev/null | head -40
           echo ""
 
           mkdir -p "$APP_PATH/Frameworks"
@@ -126,7 +169,7 @@ jobs:
 
           echo ""
           echo "=== Results ==="
-          echo "  Embedded: $EMBEDDED_COUNT libraries"
+          echo "  Embedded: $EMBEDDED_COUNT / $LIB_COUNT libraries"
 
           if [ ${#MISSING_LIBS[@]} -gt 0 ]; then
             echo "  Missing (${#MISSING_LIBS[@]}):"
