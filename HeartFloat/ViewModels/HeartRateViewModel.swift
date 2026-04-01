@@ -24,6 +24,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
     private var pipPlayerLayer: AVPlayerLayer?
     private var pipPlayerView: UIView?
     private var pipKvoObserver: NSKeyValueObservation?
+    private var pipTimeObserver: Any?
     private var lastRenderedHeartRate: Int = -1
     private var lastRenderedSettingsHash: Int = 0
     private var pendingRefreshWorkItem: DispatchWorkItem?
@@ -39,6 +40,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
         stopPip()
         pipKvoObserver?.invalidate()
         settingsCancellable?.cancel()
+        if let obs = pipTimeObserver { pipPlayer?.removeTimeObserver(obs) }
     }
 
     private func setupBindings() {
@@ -138,6 +140,8 @@ class HeartRateViewModel: NSObject, ObservableObject {
         pipController?.stopPictureInPicture()
         pipController = nil
 
+        if let obs = pipTimeObserver { pipPlayer?.removeTimeObserver(obs) }
+        pipTimeObserver = nil
         pipPlayer?.pause()
         pipPlayer = nil
         pipPlayerLayer?.removeFromSuperlayer()
@@ -145,6 +149,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
         pipPlayerView?.removeFromSuperview()
         pipPlayerView = nil
 
+        restoreAudioSession()
         addLog("画中画已关闭")
     }
 
@@ -190,6 +195,24 @@ class HeartRateViewModel: NSObject, ObservableObject {
         }
     }
 
+    private func configureAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try AVAudioSession.sharedInstance().setActive(true)
+            addLog("Audio Session 已配置为 Playback 模式")
+        } catch {
+            addLog("Audio Session 配置失败: \(error.localizedDescription)")
+        }
+    }
+
+    private func restoreAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            // ignore
+        }
+    }
+
     private func setupPipPlayer(videoURL: URL) {
         guard let scene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene }).first,
@@ -198,24 +221,29 @@ class HeartRateViewModel: NSObject, ObservableObject {
             return
         }
 
+        configureAudioSession()
+
         addLog("PiP 视频就绪，启动播放器...")
 
-        let playerItem = AVPlayerItem(url: videoURL)
+        let asset = AVAsset(url: videoURL)
+        let playerItem = AVPlayerItem(asset: asset)
         let qPlayer = AVQueuePlayer(playerItem: playerItem)
         qPlayer.isMuted = true
         qPlayer.preventsDisplaySleepDuringVideoPlayback = false
         qPlayer.allowsExternalPlayback = false
+        qPlayer.usesExternalPlaybackWhileExternalScreenMatchesTypes = false
 
         _ = AVPlayerLooper(player: qPlayer, templateItem: playerItem)
 
         let layer = AVPlayerLayer(player: qPlayer)
-        layer.frame = CGRect(x: 0, y: 0, width: 40, height: 40)
-        layer.backgroundColor = UIColor.clear.cgColor
+        layer.frame = CGRect(x: 0, y: 0, width: 80, height: 80)
+        layer.backgroundColor = UIColor.black.cgColor
         layer.videoGravity = .resizeAspectFill
 
-        let container = UIView(frame: CGRect(x: keyWindow.bounds.midX - 20, y: keyWindow.bounds.midY - 20, width: 40, height: 40))
-        container.backgroundColor = .clear
+        let container = UIView(frame: CGRect(x: keyWindow.bounds.midX - 40, y: keyWindow.bounds.midY - 40, width: 80, height: 80))
+        container.backgroundColor = UIColor.black.withAlphaComponent(0.01)
         container.clipsToBounds = true
+        container.layer.cornerRadius = 8
         container.layer.addSublayer(layer)
         keyWindow.addSubview(container)
 
@@ -230,17 +258,46 @@ class HeartRateViewModel: NSObject, ObservableObject {
 
         qPlayer.play()
 
-        pipKvoObserver = controller?.observe(\.isPictureInPicturePossible, options: [.new]) { [weak self] _, change in
-            guard let self = self, let possible = change.newValue, possible else { return }
-            if possible && self.pipController != nil && !self.isPipActive {
-                self.pipController?.startPictureInPicture()
+        pipTimeObserver = qPlayer.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 10), queue: .main) { [weak self] _ in
+            guard let self = self, self.pipPlayer != nil else { return }
+            let status = self.pipPlayer!.timeControlStatus
+            let possible = self.pipController?.isPictureInPicturePossible ?? false
+            let current = self.pipPlayer?.currentTime().seconds ?? 0
+            if status == .playing && !possible {
+                // still waiting...
             }
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
-            guard let self = self, self.pipController != nil, !self.isPipActive else { return }
-            self.addLog("PiP 超时: isPossible=\(self.pipController?.isPictureInPicturePossible ?? false)")
-            self.cleanupPipResources()
+        var checkCount = 0
+        let maxChecks = 15
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
+            guard let self = self, self.pipController != nil else {
+                timer.invalidate()
+                return
+            }
+            checkCount += 1
+            let possible = self.pipController?.isPictureInPicturePossible ?? false
+            let status = self.pipPlayer?.timeControlStatus.rawValue ?? -1
+
+            if checkCount <= 3 || checkCount % 3 == 0 {
+                self.addLog("PiP 检查 \(checkCount): possible=\(possible), playerStatus=\(status)")
+            }
+
+            if possible && !self.isPipActive {
+                timer.invalidate()
+                self.addLog("PiP 就绪! 启动中...")
+                self.pipController?.startPictureInPicture()
+            } else if checkCount >= maxChecks {
+                timer.invalidate()
+                let item = self.pipPlayer?.currentItem
+                let loaded = item?.status.rawValue ?? -1
+                let duration = item?.duration.seconds ?? 0
+                self.addLog("PiP 超时 (\(maxChecks)次检查)")
+                self.addLog("  isPossible: \(self.pipController?.isPictureInPicturePossible ?? false)")
+                self.addLog("  playerStatus: \(self.pipPlayer?.timeControlStatus.rawValue ?? -1)")
+                self.addLog("  itemStatus: \(loaded), duration: \(duration)s")
+                self.cleanupPipResources()
+            }
         }
     }
 
@@ -251,6 +308,8 @@ class HeartRateViewModel: NSObject, ObservableObject {
     }
 
     private func cleanupPipResources() {
+        if let obs = pipTimeObserver { pipPlayer?.removeTimeObserver(obs) }
+        pipTimeObserver = nil
         pipKvoObserver?.invalidate()
         pipKvoObserver = nil
         pipPlayer?.pause()
@@ -261,6 +320,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
         pipPlayerView = nil
         pipController = nil
         isPipActive = false
+        restoreAudioSession()
     }
 
     private func settingsHash() -> Int {
