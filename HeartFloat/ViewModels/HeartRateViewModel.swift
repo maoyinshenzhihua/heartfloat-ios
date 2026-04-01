@@ -101,7 +101,6 @@ class HeartRateViewModel: NSObject, ObservableObject {
         pipController?.stopPictureInPicture()
         pipController = nil
 
-        looper?.invalidate()
         looper = nil
         queuePlayer?.pause()
         queuePlayer = nil
@@ -155,8 +154,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
         writer.startWriting()
         writer.startSession(atSourceTime: .zero)
 
-        let frameDuration = CMTime(value: 1, timescale: 30)
-        var frameCount = 0
+        let frameCount = 0
         let totalFrames = 30
 
         func appendFrame() {
@@ -287,7 +285,6 @@ class HeartRateViewModel: NSObject, ObservableObject {
     }
 
     private func cleanupPipResources() {
-        looper?.invalidate()
         looper = nil
         queuePlayer?.pause()
         queuePlayer = nil
