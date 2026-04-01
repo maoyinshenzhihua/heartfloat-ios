@@ -1,79 +1,84 @@
-name: Build iOS App
-
+name: Build iOS IPA
+ 
 on:
   push:
-    branches: [ main ]
-    paths:
-      - 'HeartFloat/**'
-      - '.github/workflows/ios-build.yml'
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
-    paths:
-      - 'HeartFloat/**'
-      - '.github/workflows/ios-build.yml'
+    branches: [ main, master ]
   workflow_dispatch:
-
+ 
 jobs:
-  build-ios:
-    runs-on: macos-14
-
+  build:
+    name: Build and Export IPA
+    runs-on: macos-latest
+ 
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: List project structure
+ 
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+ 
+      - name: Install Dependencies
         run: |
-          ls -la
-          ls -la HeartFloat/
-          ls -la HeartFloat/Resources/
-          ls -la HeartFloat/Resources/Assets.xcassets/
-
-      - name: Archive iOS App
+          # Install XcodeGen if project.yml exists
+          if [ -f "project.yml" ]; then
+            brew install xcodegen
+            xcodegen generate
+          fi
+          
+          # Install CocoaPods if Podfile exists
+          if [ -f "Podfile" ]; then
+            pod install --repo-update
+          fi
+ 
+      - name: Build Archive
         run: |
-          xcodebuild -project HeartFloat.xcodeproj \
+          # Build the archive
+          xcodebuild archive \
+            -project HeartFloat.xcodeproj \
             -scheme HeartFloat \
-            -sdk iphoneos \
             -configuration Release \
+            -archivePath build/HeartFloat.xcarchive \
             -destination 'generic/platform=iOS' \
-            clean archive \
-            -archivePath $PWD/build/HeartFloat.xcarchive \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
-
-      - name: List archive contents
-        run: |
-          ls -la build/
-          ls -la build/HeartFloat.xcarchive/
-          ls -la build/HeartFloat.xcarchive/Products/Applications/
-
+ 
       - name: Export IPA
         run: |
+          # Export the IPA
           xcodebuild -exportArchive \
-            -archivePath $PWD/build/HeartFloat.xcarchive \
-            -exportPath $PWD/build/ \
+            -archivePath build/HeartFloat.xcarchive \
+            -exportPath build/ipa \
             -exportOptionsPlist ExportOptions.plist \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
-
-      - name: List export contents
-        run: |
-          ls -la build/
-
-      - name: Upload Build Artifact
+ 
+      - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: HeartFloat-iOS
-          path: build/HeartFloat.ipa
+          path: build/ipa/*.ipa
           retention-days: 30
-
-      - name: Build Summary
+      - name: Upload dSYMs (if exists)
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: HeartFloat-dSYMs
+          path: build/ipa/*.dSYM
+          retention-days: 30
+      - name: Create Build Summary
+        if: success()
         run: |
-          echo "## ✅ iOS Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## 📱 Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Build Number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** Success" >> $GITHUB_STEP_SUMMARY
-          echo "**Artifact:** [Download IPA](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project**: HeartFloat" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "- **IPA Size**: $(du -h build/ipa/*.ipa | cut -f1)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📱 Note: This build is unsigned. For installation on real devices, you need to sign the app with your Apple Developer certificate." >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Download IPA" >> $GITHUB_STEP_SUMMARY
+          echo "You can download the IPA file from the Artifacts section below." >> $GITHUB_STEP_SUMMARY
