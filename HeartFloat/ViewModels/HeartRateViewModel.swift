@@ -19,12 +19,18 @@ class HeartRateViewModel: NSObject, ObservableObject {
     private var pipController: AVPictureInPictureController?
     private var pipPlayer: AVPlayer?
     private var pipPlayerLayer: AVPlayerLayer?
-    private var pipWindow: UIWindow?
-    private var pipContentView: UIView?
+    private var pipPlayerView: UIView?
+    private var pipOverlayView: UIView?
+    private var pipStatusLabel: UILabel?
+    private var pipSubLabel: UILabel?
+    private var generatedVideoURL: URL?
+    private var looper: AVPlayerLooper?
+    private var queuePlayer: AVQueuePlayer?
 
     override init() {
         super.init()
         setupBindings()
+        generateBlankVideo()
     }
 
     deinit {
@@ -81,9 +87,12 @@ class HeartRateViewModel: NSObject, ObservableObject {
             addLog("请先连接手环")
             return
         }
+        guard let videoURL = generatedVideoURL else {
+            addLog("视频资源未就绪")
+            return
+        }
 
-        setupPipPlayer()
-        addLog("画中画已启动")
+        setupPipPlayer(videoURL: videoURL)
     }
 
     func stopPip() {
@@ -92,112 +101,207 @@ class HeartRateViewModel: NSObject, ObservableObject {
         pipController?.stopPictureInPicture()
         pipController = nil
 
-        pipPlayer?.pause()
+        looper?.invalidate()
+        looper = nil
+        queuePlayer?.pause()
+        queuePlayer = nil
         pipPlayer = nil
+
         pipPlayerLayer?.removeFromSuperlayer()
         pipPlayerLayer = nil
 
-        pipContentView?.removeFromSuperview()
-        pipContentView = nil
-
-        if let window = pipWindow {
-            window.isHidden = true
-            window.resignKey()
-            pipWindow = nil
-        }
+        pipPlayerView?.removeFromSuperview()
+        pipPlayerView = nil
+        pipOverlayView?.removeFromSuperview()
+        pipOverlayView = nil
+        pipStatusLabel = nil
+        pipSubLabel = nil
 
         addLog("画中画已关闭")
     }
 
-    private func setupPipPlayer() {
-        guard let scene = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene }).first else {
-            addLog("无法获取窗口场景")
+    private func generateBlankVideo() {
+        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("blank_pip_video.mp4")
+
+        if FileManager.default.fileExists(atPath: url.path) {
+            generatedVideoURL = url
             return
         }
 
-        let playerItem = AVPlayerItem(url: URL(fileURLWithPath: "/dev/null"))
-        let player = AVPlayer(playerItem: playerItem)
-        player.isMuted = true
-        player.allowsExternalPlayback = false
-        player.preventsDisplaySleepDuringVideoPlayback = false
+        let size = CGSize(width: 120, height: 120)
+        let settings: [String: Any] = [
+            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoWidthKey: Int(size.width),
+            AVVideoHeightKey: Int(size.height),
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: 50000,
+                AVVideoMaxKeyFrameIntervalKey: 60
+            ]
+        ]
 
-        let layer = AVPlayerLayer(player: player)
-        layer.frame = CGRect(x: 0, y: 0, width: 120, height: 120)
+        guard let writer = try? AVAssetWriter(outputURL: url, fileType: .mp4) else { return }
+        let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
+        input.expectsMediaDataInRealTime = true
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(
+            assetWriterInput: input,
+            sourcePixelBufferAttributes: [
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+                kCVPixelBufferWidthKey as String: Int(size.width),
+                kCVPixelBufferHeightKey as String: Int(size.height)
+            ]
+        )
+
+        writer.add(input)
+        writer.startWriting()
+        writer.startSession(atSourceTime: .zero)
+
+        let frameDuration = CMTime(value: 1, timescale: 30)
+        var frameCount = 0
+        let totalFrames = 30
+
+        func appendFrame() {
+            guard input.isReadyForMoreMediaData, frameCount < totalFrames else {
+                if frameCount >= totalFrames {
+                    input.markAsFinished()
+                    writer.finishWriting { [weak self] in
+                        switch writer.status {
+                        case .completed:
+                            self?.generatedVideoURL = url
+                        case .failed:
+                            self?.addLog("生成视频失败: \(writer.error?.localizedDescription ?? "未知错误")")
+                        default:
+                            break
+                        }
+                    }
+                }
+                return
+            }
+
+            guard let pool = adaptor.pixelBufferPool else { return }
+            var pixelBuffer: CVPixelBuffer?
+            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &pixelBuffer)
+            guard let buffer = pixelBuffer else { return }
+
+            CVPixelBufferLockBaseAddress(buffer, [])
+            let context = CGContext(
+                data: CVPixelBufferGetBaseAddress(buffer),
+                width: Int(size.height),
+                height: Int(size.width),
+                bitsPerComponent: 8,
+                bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
+            )
+            context?.setFillColor(UIColor.black.cgColor)
+            context?.fill(CGRect(origin: .zero, size: size))
+            CVPixelBufferUnlockBaseAddress(buffer, [])
+
+            let presentationTime = CMTime(value: Int64(frameCount), timescale: 30)
+            adaptor.append(buffer, withPresentationTime: presentationTime)
+            frameCount += 1
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { appendFrame() }
+        }
+
+        appendFrame()
+    }
+
+    private func setupPipPlayer(videoURL: URL) {
+        guard let scene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene }).first,
+            let keyWindow = scene.windows.first(where: { $0.isKeyWindow }) else {
+            addLog("无法获取窗口")
+            return
+        }
+
+        let playerItem = AVPlayerItem(url: videoURL)
+        let qPlayer = AVQueuePlayer(playerItem: playerItem)
+        qPlayer.isMuted = true
+        qPlayer.preventsDisplaySleepDuringVideoPlayback = false
+
+        let playerLooper = AVPlayerLooper(player: qPlayer, templateItem: playerItem)
+
+        let layer = AVPlayerLayer(player: qPlayer)
+        layer.frame = CGRect(x: 0, y: 0, width: 4, height: 4)
         layer.backgroundColor = UIColor.black.cgColor
-        layer.videoGravity = .resizeAspect
+        layer.videoGravity = .resizeAspectFill
+        layer.zPosition = -1
 
-        let window = UIWindow(windowScene: scene)
-        window.windowLevel = .statusBar + 1
-        window.frame = CGRect(x: 0, y: 0, width: 120, height: 120)
-        window.backgroundColor = .clear
-        window.clipsToBounds = true
-        window.layer.cornerRadius = 20
-        window.isHidden = false
+        let playerContainer = UIView(frame: CGRect(x: keyWindow.bounds.width - 8, y: keyWindow.bounds.height - 8, width: 4, height: 4))
+        playerContainer.backgroundColor = .clear
+        playerContainer.clipsToBounds = true
+        playerContainer.layer.addSublayer(layer)
+        keyWindow.addSubview(playerContainer)
 
-        let contentView = UIView(frame: window.bounds)
-        contentView.backgroundColor = UIColor.black.withAlphaComponent(0.85)
-        contentView.layer.cornerRadius = 20
-        contentView.clipsToBounds = true
-        window.addSubview(contentView)
-        window.layer.addSublayer(layer)
+        let overlay = UIView(frame: CGRect(x: 20, y: 80, width: 120, height: 120))
+        overlay.backgroundColor = UIColor.black.withAlphaComponent(0.85)
+        overlay.layer.cornerRadius = 24
+        overlay.clipsToBounds = true
+        overlay.alpha = 0
+        keyWindow.addSubview(overlay)
 
-        let label = UILabel(frame: CGRect(x: 0, y: 30, width: 120, height: 40))
-        label.text = "\(heartRate)"
-        label.textColor = .white
-        label.font = .systemFont(ofSize: 32, weight: .bold)
-        label.textAlignment = .center
-        label.tag = 1001
-        contentView.addSubview(label)
+        let statusLabel = UILabel(frame: CGRect(x: 0, y: 28, width: 120, height: 44))
+        statusLabel.text = "\(heartRate)"
+        statusLabel.textColor = .white
+        statusLabel.font = .systemFont(ofSize: 36, weight: .bold)
+        statusLabel.textAlignment = .center
+        overlay.addSubview(statusLabel)
 
-        let subLabel = UILabel(frame: CGRect(x: 0, y: 68, width: 120, height: 16))
+        let subLabel = UILabel(frame: CGRect(x: 0, y: 72, width: 120, height: 16))
         subLabel.text = "BPM"
         subLabel.textColor = .white.withAlphaComponent(0.7)
         subLabel.font = .systemFont(ofSize: 12, weight: .medium)
         subLabel.textAlignment = .center
-        subLabel.tag = 1002
-        contentView.addSubview(subLabel)
+        overlay.addSubview(subLabel)
 
         let controller = AVPictureInPictureController(playerLayer: layer)
         controller?.canStartPictureInPictureAutomaticallyFromInline = true
         controller?.delegate = self
 
-        pipPlayer = player
+        pipPlayer = qPlayer
+        looper = playerLooper
+        queuePlayer = qPlayer
         pipPlayerLayer = layer
-        window.isHidden = true
-        pipWindow = window
-        pipContentView = contentView
+        pipPlayerView = playerContainer
+        pipOverlayView = overlay
+        pipStatusLabel = statusLabel
+        pipSubLabel = subLabel
         pipController = controller
 
-        player.play()
-        if controller?.isPictureInPicturePossible == true {
-            controller?.startPictureInPicture()
-            isPipActive = true
-        } else {
-            addLog("画中画暂不可用，请稍后再试")
-            cleanupPipResources()
+        qPlayer.play()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self else { return }
+            if self.pipController?.isPictureInPicturePossible == true {
+                self.pipController?.startPictureInPicture()
+                self.addLog("正在启动画中画...")
+            } else {
+                self.addLog("画中画暂不可用，请确保应用在后台运行")
+                self.cleanupPipResources()
+            }
         }
     }
 
     private func updatePipContent() {
-        guard let view = pipContentView else { return }
-        if let label = view.viewWithTag(1001) as? UILabel {
-            label.text = heartRate > 0 ? "\(heartRate)" : "--"
-        }
+        pipStatusLabel?.text = heartRate > 0 ? "\(heartRate)" : "--"
     }
 
     private func cleanupPipResources() {
-        pipPlayer?.pause()
+        looper?.invalidate()
+        looper = nil
+        queuePlayer?.pause()
+        queuePlayer = nil
         pipPlayer = nil
+
         pipPlayerLayer?.removeFromSuperlayer()
         pipPlayerLayer = nil
-        pipContentView?.removeFromSuperview()
-        pipContentView = nil
-        if let window = pipWindow {
-            window.isHidden = true
-            window.resignKey()
-            pipWindow = nil
-        }
+
+        pipPlayerView?.removeFromSuperview()
+        pipPlayerView = nil
+        pipOverlayView?.removeFromSuperview()
+        pipOverlayView = nil
+        pipStatusLabel = nil
+        pipSubLabel = nil
         pipController = nil
         isPipActive = false
     }
@@ -249,12 +353,15 @@ class HeartRateViewModel: NSObject, ObservableObject {
 
 extension HeartRateViewModel: AVPictureInPictureControllerDelegate {
     func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        pipWindow?.isHidden = true
+        pipPlayerView?.alpha = 0
+        pipOverlayView?.alpha = 0
         isPipActive = true
+        addLog("画中画已启动 ✅")
     }
 
     func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
         cleanupPipResources()
+        addLog("画中画已停止")
     }
 
     func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
