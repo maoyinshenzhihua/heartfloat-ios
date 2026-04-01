@@ -27,36 +27,37 @@ jobs:
           ls -la HeartFloat/
           ls -la HeartFloat/Resources/
 
-      - name: Build App
+      - name: Build Archive
         run: |
-          xcodebuild -project HeartFloat.xcodeproj \
+          xcodebuild archive \
+            -project HeartFloat.xcodeproj \
             -scheme HeartFloat \
             -configuration Release \
-            -sdk iphoneos \
+            -archivePath build/HeartFloat.xcarchive \
             -destination 'generic/platform=iOS' \
-            build \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            DSTROOT=$PWD/build \
-            INSTALL_PATH=/Applications
+            CODE_SIGNING_ALLOWED=NO
 
-      - name: Find Built App
-        id: find-app
+      - name: List Archive Contents
         run: |
-          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "HeartFloat.app" -type d 2>/dev/null | head -1)
-          echo "app_path=$APP_PATH" >> $GITHUB_OUTPUT
-          echo "Found app at: $APP_PATH"
-          ls -la "$APP_PATH"
+          ls -la build/
+          ls -la build/HeartFloat.xcarchive/
+          ls -la build/HeartFloat.xcarchive/Products/Applications/
+          ls -la build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/
 
-      - name: Create IPA
+      - name: Create IPA from Archive
         run: |
           mkdir -p build/ipa
           cd build/ipa
           mkdir -p Payload
-          cp -r "${{ steps.find-app.outputs.app_path }}" Payload/
+          cp -r "../HeartFloat.xcarchive/Products/Applications/HeartFloat.app" Payload/
+          
+          echo "=== Payload contents ==="
           ls -la Payload/
           ls -la Payload/HeartFloat.app/
+          
+          echo "=== Creating IPA ==="
           zip -r HeartFloat.ipa Payload
           rm -rf Payload
           ls -la
