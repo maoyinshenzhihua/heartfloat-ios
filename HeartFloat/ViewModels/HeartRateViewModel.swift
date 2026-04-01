@@ -207,10 +207,8 @@ class HeartRateViewModel: NSObject, ObservableObject {
             let presentationTime = CMTime(value: Int64(frameCount), timescale: 30)
             if !adaptor.append(buffer, withPresentationTime: presentationTime) {
                 addLog("追加帧 \(frameCount) 失败")
-                CVPixelBufferRelease(buffer)
                 return
             }
-            CVPixelBufferRelease(buffer)
             frameCount += 1
         }
 
