@@ -26,8 +26,8 @@ class HeartRateVideoRenderer {
             AVVideoWidthKey: Int(videoSize.width),
             AVVideoHeightKey: Int(videoSize.height),
             AVVideoCompressionPropertiesKey: [
-                AVVideoAverageBitRateKey: 200000,
-                AVVideoMaxKeyFrameIntervalKey: frameRate * 2
+                AVVideoAverageBitRateKey: 500000,
+                AVVideoMaxKeyFrameIntervalKey: frameRate * 5
             ]
         ]
 
@@ -49,7 +49,7 @@ class HeartRateVideoRenderer {
         writer.startWriting()
         writer.startSession(atSourceTime: .zero)
 
-        let totalFrames = frameRate * 2
+        let totalFrames = frameRate * 10
         for frameIndex in 0..<totalFrames {
             while !input.isReadyForMoreMediaData {
                 Thread.sleep(forTimeInterval: 0.005)
@@ -94,7 +94,7 @@ class HeartRateVideoRenderer {
             bitsPerComponent: 8,
             bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
             space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
         ) else {
             CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
             return nil
@@ -112,8 +112,11 @@ class HeartRateVideoRenderer {
         let cornerRadius: CGFloat = 28
         let bgOpacity = CGFloat(settings.backgroundOpacity) / 100.0
 
+        ctx.setFillColor(UIColor.black.cgColor)
+        ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+
         ctx.setFillColor(UIColor.black.withAlphaComponent(bgOpacity).cgColor)
-        let bgPath = UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: w, height: h), cornerRadius: cornerRadius).cgPath
+        let bgPath = UIBezierPath(roundedRect: CGRect(x: 4, y: 4, width: w - 8, height: h - 8), cornerRadius: cornerRadius).cgPath
         ctx.addPath(bgPath)
         ctx.fillPath()
 

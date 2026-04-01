@@ -25,10 +25,12 @@ class HeartRateViewModel: NSObject, ObservableObject {
     private var pipPlayerView: UIView?
     private var pipKvoObserver: NSKeyValueObservation?
     private var pipTimeObserver: Any?
+    private var pipLooper: AVPlayerLooper?
     private var lastRenderedHeartRate: Int = -1
     private var lastRenderedSettingsHash: Int = 0
     private var pendingRefreshWorkItem: DispatchWorkItem?
     private var isRefreshingVideo = false
+    private var userRequestedStop = false
 
     override init() {
         super.init()
@@ -37,6 +39,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
     }
 
     deinit {
+        userRequestedStop = true
         stopPip()
         pipKvoObserver?.invalidate()
         settingsCancellable?.cancel()
@@ -105,6 +108,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
 
         addLog("正在生成心率视频...")
         isRefreshingVideo = true
+        userRequestedStop = false
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
@@ -130,6 +134,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
     }
 
     func stopPip() {
+        userRequestedStop = true
         pendingRefreshWorkItem?.cancel()
         pendingRefreshWorkItem = nil
         pipKvoObserver?.invalidate()
@@ -142,6 +147,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
 
         if let obs = pipTimeObserver { pipPlayer?.removeTimeObserver(obs) }
         pipTimeObserver = nil
+        pipLooper = nil
         pipPlayer?.pause()
         pipPlayer = nil
         pipPlayerLayer?.removeFromSuperlayer()
@@ -162,7 +168,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
             self?.refreshPipVideo(heartRate: heartRate)
         }
         pendingRefreshWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: workItem)
     }
 
     private func refreshPipVideo(heartRate: Int) {
@@ -232,7 +238,8 @@ class HeartRateViewModel: NSObject, ObservableObject {
         qPlayer.preventsDisplaySleepDuringVideoPlayback = false
         qPlayer.allowsExternalPlayback = false
 
-        _ = AVPlayerLooper(player: qPlayer, templateItem: playerItem)
+        let looper = AVPlayerLooper(player: qPlayer, templateItem: playerItem)
+        pipLooper = looper
 
         let layer = AVPlayerLayer(player: qPlayer)
         layer.frame = CGRect(x: 0, y: 0, width: 80, height: 80)
@@ -257,18 +264,8 @@ class HeartRateViewModel: NSObject, ObservableObject {
 
         qPlayer.play()
 
-        pipTimeObserver = qPlayer.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 10), queue: .main) { [weak self] _ in
-            guard let self = self, self.pipPlayer != nil else { return }
-            let status = self.pipPlayer!.timeControlStatus
-            let possible = self.pipController?.isPictureInPicturePossible ?? false
-            let current = self.pipPlayer?.currentTime().seconds ?? 0
-            if status == .playing && !possible {
-                // still waiting...
-            }
-        }
-
         var checkCount = 0
-        let maxChecks = 15
+        let maxChecks = 20
         Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
             guard let self = self, self.pipController != nil else {
                 timer.invalidate()
@@ -282,7 +279,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
                 self.addLog("PiP 检查 \(checkCount): possible=\(possible), playerStatus=\(status)")
             }
 
-            if possible && !self.isPipActive {
+            if possible && !self.isPipActive && !self.userRequestedStop {
                 timer.invalidate()
                 self.addLog("PiP 就绪! 启动中...")
                 self.pipController?.startPictureInPicture()
@@ -303,7 +300,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
     private func replacePlayerItem(url: URL) {
         let newItem = AVPlayerItem(url: url)
         pipPlayer?.replaceCurrentItem(with: newItem)
-        _ = AVPlayerLooper(player: pipPlayer!, templateItem: newItem)
+        pipLooper = AVPlayerLooper(player: pipPlayer!, templateItem: newItem)
     }
 
     private func cleanupPipResources() {
@@ -311,6 +308,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
         pipTimeObserver = nil
         pipKvoObserver?.invalidate()
         pipKvoObserver = nil
+        pipLooper = nil
         pipPlayer?.pause()
         pipPlayer = nil
         pipPlayerLayer?.removeFromSuperlayer()
@@ -386,8 +384,13 @@ extension HeartRateViewModel: AVPictureInPictureControllerDelegate {
     }
 
     func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        cleanupPipResources()
-        addLog("画中画已停止")
+        if userRequestedStop {
+            addLog("用户关闭了画中画")
+            return
+        }
+        isPipActive = false
+        addLog("系统暂停了画中画（非用户操作），播放器保持运行中")
+        showPlayerContainer()
     }
 
     func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
@@ -398,5 +401,14 @@ extension HeartRateViewModel: AVPictureInPictureControllerDelegate {
     private func hidePlayerContainer() {
         pipPlayerView?.alpha = 0
         pipPlayerView?.frame = CGRect(x: -100, y: -100, width: 1, height: 1)
+    }
+
+    private func showPlayerContainer() {
+        guard let view = pipPlayerView, let window = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene }).first?.windows.first(where: { $0.isKeyWindow }) else { return }
+        view.alpha = 1
+        view.frame = CGRect(x: window.bounds.midX - 40, y: window.bounds.midY - 40, width: 80, height: 80)
+        window.addSubview(view)
+        window.bringSubviewToFront(view)
     }
 }
