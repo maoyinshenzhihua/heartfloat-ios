@@ -1,93 +1,78 @@
-name: Build Unsigned IPA
+name: iOS Build Unsigned IPA
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
   workflow_dispatch:
-
-env:
-  SCHEME: HeartFloat
-  WORKSPACE: HeartFloat.xcworkspace
-  BUNDLE_ID: com.heartfloat.HeartFloat
 
 jobs:
   build:
-    runs-on: macos-latest
-    timeout-minutes: 30
+    runs-on: macos-14
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode Version
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
-
-      - name: Install XcodeGen
-        run: brew install xcodegen
-
-      - name: Generate Xcode Project
-        run: xcodegen generate
-
-      - name: Install CocoaPods Dependencies
-        if: hashFiles('Podfile') != ''
-        run: pod install
-
-      - name: Build (Unsigned)
+      - name: List project structure
         run: |
-          xcodebuild build \
-            -workspace "${{ env.WORKSPACE }}" \
-            -scheme "${{ env.SCHEME }}" \
+          ls -la
+          ls -la HeartFloat/ || true
+
+      - name: Build unsigned archive
+        run: |
+          xcodebuild archive \
+            -project HeartFloat.xcodeproj \
+            -scheme HeartFloat \
             -configuration Release \
-            -destination generic/platform=iOS \
-            -derivedDataPath build/DerivedData \
-            CODE_SIGNING_ALLOWED=NO \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/HeartFloat.xcarchive \
             CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_ENTITLEMENTS="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            SKIP_INSTALL=NO \
             | xcpretty
 
-      - name: Package IPA (Unsigned)
+      - name: Export unsigned IPA
         run: |
-          APP_PATH=$(find build/DerivedData/Build/Products/Release-iphoneos -name "${{ env.SCHEME }}.app" -type d | head -1)
+          mkdir -p build/ipa
 
-          if [ -z "$APP_PATH" ]; then
-            echo "::error::App bundle not found"
-            exit 1
+          xcodebuild -exportArchive \
+            -archivePath build/HeartFloat.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build/ipa \
+            -allowProvisioningUpdates \
+            | xcpretty || true
+
+          if [ ! -d build/ipa ] || [ -z "$(ls -A build/ipa 2>/dev/null)" ]; then
+            echo "::warning::Standard export failed, using manual IPA packaging..."
+            rm -rf build/ipa
+            mkdir -p build/ipa/Payload
+            cp -R build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app build/ipa/Payload/
+            cd build/ipa && zip -r ../HeartFloat-unsigned.ipa Payload && cd ../..
           fi
 
-          echo "Found app at: $APP_PATH"
-
-          mkdir -p build/Payload
-          cp -R "$APP_PATH" build/Payload/
-          cd build && zip -r -q "../HeartFloat-unsigned.ipa" Payload
-          cd ..
-
-          echo "IPA_SIZE=$(du -h HeartFloat-unsigned.ipa | cut -f1)" >> $GITHUB_ENV
-
-      - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: HeartFloat-unsigned-${{ github.run_id }}
-          path: HeartFloat-unsigned.ipa
-          retention-days: 30
-
-      - name: Upload App Bundle Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: HeartFloat-app-${{ github.run_id }}
-          path: build/DerivedData/Build/Products/Release-iphoneos/*.app
-          retention-days: 30
-
-      - name: Build Summary
+      - name: Find and rename IPA artifact
         run: |
-          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Scheme | \`${{ env.SCHEME }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Bundle ID | \`${{ env.BUNDLE_ID }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Signing | **Unsigned** (CODE_SIGNING_ALLOWED=NO) |" >> $GITHUB_STEP_SUMMARY
-          echo "| IPA Size | \`${{ env.IPA_SIZE }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Run ID | \`${{ github.run_id }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          if [ -f build/HeartFloat-unsigned.ipa ]; then
+            mv build/HeartFloat-unsigned.ipa build/HeartFloat.ipa
+          else
+            IPA_FILE=$(find build/ipa -name "*.ipa" -type f 2>/dev/null | head -1)
+            if [ -n "$IPA_FILE" ]; then
+              cp "$IPA_FILE" build/HeartFloat.ipa
+            else
+              echo "::error::No IPA file found!"
+              exit 1
+            fi
+          fi
+          echo "IPA built successfully: $(du -h build/HeartFloat.ipa | cut -f1)"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HeartFloat-unsigned-ipa
+          path: build/HeartFloat.ipa
+          retention-days: 30
