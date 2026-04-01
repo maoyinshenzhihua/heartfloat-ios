@@ -28,59 +28,76 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath build/HeartFloat.xcarchive \
-            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_ENTITLEMENTS="" \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            VALIDATE_PRODUCT=NO \
+            ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES \
+            COPY_PHASE_STRIP=NO \
+            ENABLE_BITCODE=NO \
             SKIP_INSTALL=NO \
+            OTHER_CFLAGS="-fembed-bitcode-marker" \
+            OTHER_LDFLAGS="" \
             | xcpretty
 
       - name: Show archive contents
         run: |
           echo "=== Archive structure ==="
-          ls -la build/
-          ls -la build/HeartFloat.xcarchive/
-          ls -la build/HeartFloat.xcarchive/Products/
-          ls -la build/HeartFloat.xcarchive/Products/Applications/
+          ls -laR build/HeartFloat.xcarchive/ || echo "Archive not found!"
           echo -e "\n=== App bundle contents ==="
-          ls -la build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/
-          echo -e "\n=== Frameworks (if exists) ==="
-          ls -la build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/Frameworks 2>/dev/null || echo "No Frameworks directory found!"
+          ls -laR build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/ 2>/dev/null || echo "App not found!"
+          echo -e "\n=== Check for embedded frameworks ==="
+          find build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app -name "*.framework" -o -name "*.dylib" 2>/dev/null || echo "No embedded frameworks/dylibs"
 
-      - name: Export unsigned IPA
+      - name: Verify app binary exists
         run: |
-          mkdir -p build/ipa
-
-          xcodebuild -exportArchive \
-            -archivePath build/HeartFloat.xcarchive \
-            -exportOptionsPlist ExportOptions.plist \
-            -exportPath build/ipa \
-            -allowProvisioningUpdates \
-            | xcpretty || true
-
-          if [ ! -d build/ipa ] || [ -z "$(ls -A build/ipa 2>/dev/null)" ]; then
-            echo "::warning::Standard export failed, using manual IPA packaging..."
-            rm -rf build/ipa
-            mkdir -p build/ipa/Payload
-            cp -R build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app build/ipa/Payload/
-            cd build/ipa && zip -r ../HeartFloat-unsigned.ipa Payload && cd ../..
+          APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/HeartFloat"
+          if [ ! -f "$APP_PATH" ]; then
+            echo "::error::App binary not found at $APP_PATH"
+            echo "=== Searching for binary ==="
+            find build/HeartFloat.xcarchive -type f -name "HeartFloat" -o -name "*.appex" 2>/dev/null
+            exit 1
+          fi
+          BINARY_SIZE=$(stat -f%z "$APP_PATH")
+          echo "App binary size: $BINARY_SIZE bytes"
+          if [ "$BINARY_SIZE" -lt 10000 ]; then
+            echo "::warning::App binary seems too small ($BINARY_SIZE bytes), build may be incomplete"
           fi
 
-      - name: Find and rename IPA artifact
+      - name: Package IPA manually
         run: |
-          if [ -f build/HeartFloat-unsigned.ipa ]; then
-            mv build/HeartFloat-unsigned.ipa build/HeartFloat.ipa
-          else
-            IPA_FILE=$(find build/ipa -name "*.ipa" -type f 2>/dev/null | head -1)
-            if [ -n "$IPA_FILE" ]; then
-              cp "$IPA_FILE" build/HeartFloat.ipa
-            else
-              echo "::error::No IPA file found!"
-              exit 1
-            fi
+          rm -rf build/ipa
+          mkdir -p build/ipa/Payload
+
+          APP_SRC="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app"
+          if [ ! -d "$APP_SRC" ]; then
+            echo "::error::HeartFloat.app not found in archive"
+            exit 1
           fi
-          echo "IPA built successfully: $(du -h build/HeartFloat.ipa | cut -f1)"
+
+          echo "Copying app bundle..."
+          cp -R "$APP_SRC" build/ipa/Payload/
+
+          echo "Verifying copied app..."
+          ls -laR build/ipa/Payload/HeartFloat.app/ | head -50
+
+          echo "Creating IPA..."
+          cd build/ipa
+          zip -r ../HeartFloat-unsigned.ipa Payload -x "*.DS_Store"
+          cd ../..
+
+          echo "IPA created:"
+          ls -lh build/HeartFloat-unsigned.ipa
+
+      - name: Final artifact preparation
+        run: |
+          mv build/HeartFloat-unsigned.ipa build/HeartFloat.ipa
+          echo "Final IPA:"
+          ls -lh build/HeartFloat.ipa
+          echo "IPA contents:"
+          unzip -l build/HeartFloat.ipa | head -30
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
