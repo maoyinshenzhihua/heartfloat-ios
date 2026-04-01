@@ -104,6 +104,13 @@ class HeartRateViewModel: ObservableObject {
     }
 
     private func setupPipPlayer() {
+        guard let scene = (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }.first
+            ?? UIApplication.shared.windows.first?.windowScene) else {
+            addLog("无法获取窗口场景")
+            return
+        }
+
         let playerItem = AVPlayerItem(url: URL(fileURLWithPath: "/dev/null"))
         let player = AVPlayer(playerItem: playerItem)
         player.isMuted = true
@@ -115,8 +122,7 @@ class HeartRateViewModel: ObservableObject {
         playerLayer.backgroundColor = UIColor.black.cgColor
         playerLayer.videoGravity = .resizeAspect
 
-        let pipWindow = UIWindow(windowScene: UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }.first ?? UIApplication.shared.windows.first?.windowScene)
+        let pipWindow = UIWindow(windowScene: scene)
         pipWindow.windowLevel = .statusBar + 1
         pipWindow.frame = CGRect(x: 0, y: 0, width: 120, height: 120)
         pipWindow.backgroundColor = .clear
