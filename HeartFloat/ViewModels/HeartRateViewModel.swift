@@ -231,7 +231,6 @@ class HeartRateViewModel: NSObject, ObservableObject {
         qPlayer.isMuted = true
         qPlayer.preventsDisplaySleepDuringVideoPlayback = false
         qPlayer.allowsExternalPlayback = false
-        qPlayer.usesExternalPlaybackWhileExternalScreenMatchesTypes = false
 
         _ = AVPlayerLooper(player: qPlayer, templateItem: playerItem)
 
