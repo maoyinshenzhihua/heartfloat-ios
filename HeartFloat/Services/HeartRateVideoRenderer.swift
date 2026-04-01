@@ -39,7 +39,7 @@ class HeartRateVideoRenderer {
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(
             assetWriterInput: input,
             sourcePixelBufferAttributes: [
-                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB,
                 kCVPixelBufferWidthKey as String: Int(videoSize.width),
                 kCVPixelBufferHeightKey as String: Int(videoSize.height)
             ]
@@ -79,11 +79,11 @@ class HeartRateVideoRenderer {
             kCVPixelBufferCGBitmapContextCompatibilityKey as String: true,
             kCVPixelBufferWidthKey as String: Int(videoSize.width),
             kCVPixelBufferHeightKey as String: Int(videoSize.height),
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB
         ]
 
         var buffer: CVPixelBuffer?
-        CVPixelBufferCreate(kCFAllocatorDefault, Int(videoSize.width), Int(videoSize.height), kCVPixelFormatType_32BGRA, attrs as CFDictionary, &buffer)
+        CVPixelBufferCreate(kCFAllocatorDefault, Int(videoSize.width), Int(videoSize.height), kCVPixelFormatType_32ARGB, attrs as CFDictionary, &buffer)
         guard let pixelBuffer = buffer else { return nil }
 
         CVPixelBufferLockBaseAddress(pixelBuffer, [])
@@ -94,7 +94,7 @@ class HeartRateVideoRenderer {
             bitsPerComponent: 8,
             bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
             space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else {
             CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
             return nil
