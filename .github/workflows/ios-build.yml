@@ -1,42 +1,34 @@
 name: Build iOS IPA
- 
+
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
- 
+
 jobs:
   build:
     name: Build and Export IPA
     runs-on: macos-latest
- 
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
- 
+
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
- 
-      - name: Install Dependencies
+
+      - name: List Project Structure
         run: |
-          # Install XcodeGen if project.yml exists
-          if [ -f "project.yml" ]; then
-            brew install xcodegen
-            xcodegen generate
-          fi
-          
-          # Install CocoaPods if Podfile exists
-          if [ -f "Podfile" ]; then
-            pod install --repo-update
-          fi
- 
+          ls -la
+          ls -la HeartFloat/
+          ls -la HeartFloat/Resources/
+
       - name: Build Archive
         run: |
-          # Build the archive
           xcodebuild archive \
             -project HeartFloat.xcodeproj \
             -scheme HeartFloat \
@@ -46,10 +38,15 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
- 
+
+      - name: List Archive Contents
+        run: |
+          ls -la build/
+          ls -la build/HeartFloat.xcarchive/
+          ls -la build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/
+
       - name: Export IPA
         run: |
-          # Export the IPA
           xcodebuild -exportArchive \
             -archivePath build/HeartFloat.xcarchive \
             -exportPath build/ipa \
@@ -57,20 +54,14 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
- 
+
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: HeartFloat-iOS
           path: build/ipa/*.ipa
           retention-days: 30
-      - name: Upload dSYMs (if exists)
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: HeartFloat-dSYMs
-          path: build/ipa/*.dSYM
-          retention-days: 30
+
       - name: Create Build Summary
         if: success()
         run: |
