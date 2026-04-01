@@ -45,21 +45,28 @@ jobs:
           ls -la build/HeartFloat.xcarchive/
           ls -la build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/
 
-      - name: Export IPA
+      - name: Create IPA Manually
         run: |
-          xcodebuild -exportArchive \
-            -archivePath build/HeartFloat.xcarchive \
-            -exportPath build/ipa \
-            -exportOptionsPlist ExportOptions.plist \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+          mkdir -p build/ipa
+          APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app"
+          
+          if [ -d "$APP_PATH" ]; then
+            cd build/ipa
+            mkdir -p Payload
+            cp -r "../HeartFloat.xcarchive/Products/Applications/HeartFloat.app" Payload/
+            zip -r HeartFloat.ipa Payload
+            rm -rf Payload
+            ls -la
+          else
+            echo "App not found!"
+            exit 1
+          fi
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: HeartFloat-iOS
-          path: build/ipa/*.ipa
+          path: build/ipa/HeartFloat.ipa
           retention-days: 30
 
       - name: Create Build Summary
@@ -69,7 +76,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Project**: HeartFloat" >> $GITHUB_STEP_SUMMARY
           echo "- **Build Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
-          echo "- **IPA Size**: $(du -h build/ipa/*.ipa | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          echo "- **IPA Size**: $(du -h build/ipa/HeartFloat.ipa | cut -f1)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📥 Download IPA" >> $GITHUB_STEP_SUMMARY
           echo "You can download the IPA file from the Artifacts section below." >> $GITHUB_STEP_SUMMARY
