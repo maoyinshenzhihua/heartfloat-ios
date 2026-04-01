@@ -36,6 +36,18 @@ jobs:
             SKIP_INSTALL=NO \
             | xcpretty
 
+      - name: Show archive contents
+        run: |
+          echo "=== Archive structure ==="
+          ls -la build/
+          ls -la build/HeartFloat.xcarchive/
+          ls -la build/HeartFloat.xcarchive/Products/
+          ls -la build/HeartFloat.xcarchive/Products/Applications/
+          echo -e "\n=== App bundle contents ==="
+          ls -la build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/
+          echo -e "\n=== Frameworks (if exists) ==="
+          ls -la build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/Frameworks 2>/dev/null || echo "No Frameworks directory found!"
+
       - name: Export unsigned IPA
         run: |
           mkdir -p build/ipa
