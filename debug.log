@@ -1,132 +1,183 @@
 Run echo "=== Archive structure ==="
   echo "=== Archive structure ==="
-  ls -laR build/HeartFloat.xcarchive/ || echo "Archive not found!"
-  echo -e "\n=== App bundle contents ==="
-  ls -laR build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/ 2>/dev/null || echo "App not found!"
-  echo -e "\n=== Check for embedded frameworks ==="
-  find build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app -name "*.framework" -o -name "*.dylib" 2>/dev/null || echo "No embedded frameworks/dylibs"
+  ls -laR build/HeartFloat.xcarchive/ 2>/dev/null | head -40 || echo "Archive not found!"
+  echo -e "\n=== App bundle BEFORE Swift libs ==="
+  ls -laR build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/ 2>/dev/null | head -30
   shell: /bin/bash -e {0}
 === Archive structure ===
 total 8
-drwxr-xr-x  5 runner  staff  160 Apr  1 19:06 .
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 ..
--rw-r--r--  1 runner  staff  873 Apr  1 19:06 Info.plist
-drwxr-xr-x@ 3 runner  staff   96 Apr  1 19:06 Products
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 dSYMs
+drwxr-xr-x  5 runner  staff  160 Apr  1 19:09 .
+drwxr-xr-x  3 runner  staff   96 Apr  1 19:09 ..
+-rw-r--r--  1 runner  staff  873 Apr  1 19:09 Info.plist
+drwxr-xr-x@ 3 runner  staff   96 Apr  1 19:08 Products
+drwxr-xr-x  3 runner  staff   96 Apr  1 19:09 dSYMs
 build/HeartFloat.xcarchive//Products:
 total 0
-drwxr-xr-x@ 3 runner  staff   96 Apr  1 19:06 .
-drwxr-xr-x  5 runner  staff  160 Apr  1 19:06 ..
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 Applications
+drwxr-xr-x@ 3 runner  staff   96 Apr  1 19:08 .
+drwxr-xr-x  5 runner  staff  160 Apr  1 19:09 ..
+drwxr-xr-x  3 runner  staff   96 Apr  1 19:08 Applications
 build/HeartFloat.xcarchive//Products/Applications:
 total 0
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 .
-drwxr-xr-x@ 3 runner  staff   96 Apr  1 19:06 ..
-drwxr-xr-x  6 runner  staff  192 Apr  1 19:06 HeartFloat.app
+drwxr-xr-x  3 runner  staff   96 Apr  1 19:08 .
+drwxr-xr-x@ 3 runner  staff   96 Apr  1 19:08 ..
+drwxr-xr-x  6 runner  staff  192 Apr  1 19:09 HeartFloat.app
 build/HeartFloat.xcarchive//Products/Applications/HeartFloat.app:
 total 664
-drwxr-xr-x  6 runner  staff     192 Apr  1 19:06 .
-drwxr-xr-x  3 runner  staff      96 Apr  1 19:06 ..
--rw-r--r--  1 runner  staff   22639 Apr  1 19:06 Assets.car
--rwxr-xr-x  1 runner  staff  305600 Apr  1 19:06 HeartFloat
--rw-r--r--  1 runner  staff    1441 Apr  1 19:06 Info.plist
--rw-r--r--  1 runner  staff       8 Apr  1 19:06 PkgInfo
+drwxr-xr-x  6 runner  staff     192 Apr  1 19:09 .
+drwxr-xr-x  3 runner  staff      96 Apr  1 19:08 ..
+-rw-r--r--  1 runner  staff   22639 Apr  1 19:09 Assets.car
+-rwxr-xr-x  1 runner  staff  305600 Apr  1 19:09 HeartFloat
+-rw-r--r--  1 runner  staff    1441 Apr  1 19:09 Info.plist
+-rw-r--r--  1 runner  staff       8 Apr  1 19:09 PkgInfo
 build/HeartFloat.xcarchive//dSYMs:
 total 0
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 .
-drwxr-xr-x  5 runner  staff  160 Apr  1 19:06 ..
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 HeartFloat.app.dSYM
+drwxr-xr-x  3 runner  staff   96 Apr  1 19:09 .
+drwxr-xr-x  5 runner  staff  160 Apr  1 19:09 ..
+drwxr-xr-x  3 runner  staff   96 Apr  1 19:09 HeartFloat.app.dSYM
 build/HeartFloat.xcarchive//dSYMs/HeartFloat.app.dSYM:
 total 0
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 .
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 ..
-drwxr-xr-x  4 runner  staff  128 Apr  1 19:06 Contents
-build/HeartFloat.xcarchive//dSYMs/HeartFloat.app.dSYM/Contents:
-total 8
-drwxr-xr-x  4 runner  staff  128 Apr  1 19:06 .
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 ..
--rw-r--r--  1 runner  staff  654 Apr  1 19:06 Info.plist
-drwxr-xr-x  4 runner  staff  128 Apr  1 19:06 Resources
-build/HeartFloat.xcarchive//dSYMs/HeartFloat.app.dSYM/Contents/Resources:
-total 0
-drwxr-xr-x  4 runner  staff  128 Apr  1 19:06 .
-drwxr-xr-x  4 runner  staff  128 Apr  1 19:06 ..
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 DWARF
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 Relocations
-build/HeartFloat.xcarchive//dSYMs/HeartFloat.app.dSYM/Contents/Resources/DWARF:
-total 4208
-drwxr-xr-x  3 runner  staff       96 Apr  1 19:06 .
-drwxr-xr-x  4 runner  staff      128 Apr  1 19:06 ..
--rw-r--r--  1 runner  staff  2154311 Apr  1 19:06 HeartFloat
-build/HeartFloat.xcarchive//dSYMs/HeartFloat.app.dSYM/Contents/Resources/Relocations:
-total 0
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 .
-drwxr-xr-x  4 runner  staff  128 Apr  1 19:06 ..
-drwxr-xr-x  3 runner  staff   96 Apr  1 19:06 aarch64
-build/HeartFloat.xcarchive//dSYMs/HeartFloat.app.dSYM/Contents/Resources/Relocations/aarch64:
-total 232
-drwxr-xr-x  3 runner  staff      96 Apr  1 19:06 .
-drwxr-xr-x  3 runner  staff      96 Apr  1 19:06 ..
--rw-r--r--  1 runner  staff  116049 Apr  1 19:06 HeartFloat.yml
-=== App bundle contents ===
+drwxr-xr-x  3 runner  staff   96 Apr  1 19:09 .
+drwxr-xr-x  3 runner  staff   96 Apr  1 19:09 ..
+drwxr-xr-x  4 runner  staff  128 Apr  1 19:09 Contents
+=== App bundle BEFORE Swift libs ===
 total 664
-drwxr-xr-x  6 runner  staff     192 Apr  1 19:06 .
-drwxr-xr-x  3 runner  staff      96 Apr  1 19:06 ..
--rw-r--r--  1 runner  staff   22639 Apr  1 19:06 Assets.car
--rwxr-xr-x  1 runner  staff  305600 Apr  1 19:06 HeartFloat
--rw-r--r--  1 runner  staff    1441 Apr  1 19:06 Info.plist
--rw-r--r--  1 runner  staff       8 Apr  1 19:06 PkgInfo
-=== Check for embedded frameworks ===
+drwxr-xr-x  6 runner  staff     192 Apr  1 19:09 .
+drwxr-xr-x  3 runner  staff      96 Apr  1 19:08 ..
+-rw-r--r--  1 runner  staff   22639 Apr  1 19:09 Assets.car
+-rwxr-xr-x  1 runner  staff  305600 Apr  1 19:09 HeartFloat
+-rw-r--r--  1 runner  staff    1441 Apr  1 19:09 Info.plist
+-rw-r--r--  1 runner  staff       8 Apr  1 19:09 PkgInfo
+2s
+Run APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app"
+  APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app"
+  BINARY="$APP_PATH/HeartFloat"
+  
+  if [ ! -f "$BINARY" ]; then
+    echo "::error::App binary not found"
+    exit 1
+  fi
+  
+  echo "=== Detecting linked Swift libraries ==="
+  otool -L "$BINARY" | grep -i swift || echo "No swift libs found in otool output"
+  
+  SWIFT_LIB_DIR="$(xcrun --sdk iphoneos --show-sdk-path)/usr/lib/swift/iphoneos"
+  echo "Swift lib source dir: $SWIFT_LIB_DIR"
+  ls "$SWIFT_LIB_DIR"/libswift*.dylib 2>/dev/null | head -20 || echo "No swift dylibs in SDK!"
+  
+  mkdir -p "$APP_PATH/Frameworks"
+  
+  REQUIRED_LIBS=(
+    "libswiftCore.dylib"
+    "libswiftCoreFoundation.dylib"
+    "libswiftFoundation.dylib"
+    "libswiftObjectiveC.dylib"
+    "libswiftSwiftOnoneSupport.dylib"
+    "libswiftDispatch.dylib"
+    "libswiftDarwin.dylib"
+    "libswiftMath.dylib"
+    "libswiftUIKit.dylib"
+    "libswiftCoreGraphics.dylib"
+    "libswiftQuartzCore.dylib"
+  )
+  
+  EMBEDDED_COUNT=0
+  for LIB in "${REQUIRED_LIBS[@]}"; do
+    SRC="$SWIFT_LIB_DIR/$LIB"
+    if [ -f "$SRC" ]; then
+      cp "$SRC" "$APP_PATH/Frameworks/"
+      chmod 755 "$APP_PATH/Frameworks/$LIB"
+      echo "  ✅ Embedded: $LIB ($(du -h "$APP_PATH/Frameworks/$LIB" | cut -f1))"
+      EMBEDDED_COUNT=$((EMBEDDED_COUNT + 1))
+    else
+      echo "  ⚠️ Not found: $LIB"
+    fi
+  done
+  
+  echo ""
+  echo "=== Embedded $EMBEDDED_COUNT Swift libraries ==="
+  echo "=== Frameworks directory contents ==="
+  ls -lh "$APP_PATH/Frameworks/"
+  shell: /bin/bash -e {0}
+  
+=== Detecting linked Swift libraries ===
+	/System/Library/Frameworks/SwiftUI.framework/SwiftUI (compatibility version 1.0.0, current version 5.5.8)
+	/usr/lib/swift/libswiftAVFoundation.dylib (compatibility version 1.0.0, current version 2240.7.2, weak)
+	/usr/lib/swift/libswiftCore.dylib (compatibility version 1.0.0, current version 0.0.0)
+	/usr/lib/swift/libswiftCoreAudio.dylib (compatibility version 1.0.0, current version 6.0.0, weak)
+	/usr/lib/swift/libswiftCoreFoundation.dylib (compatibility version 1.0.0, current version 120.100.0, weak)
+	/usr/lib/swift/libswiftCoreGraphics.dylib (compatibility version 1.0.0, current version 15.0.0)
+	/usr/lib/swift/libswiftCoreImage.dylib (compatibility version 1.0.0, current version 2.0.0, weak)
+	/usr/lib/swift/libswiftCoreMIDI.dylib (compatibility version 1.0.0, current version 6.0.0, weak)
+	/usr/lib/swift/libswiftCoreMedia.dylib (compatibility version 1.0.0, current version 3110.8.2, weak)
+	/usr/lib/swift/libswiftDarwin.dylib (compatibility version 1.0.0, current version 0.0.0, weak)
+	/usr/lib/swift/libswiftDataDetection.dylib (compatibility version 1.0.0, current version 758.7.0, weak)
+	/usr/lib/swift/libswiftDispatch.dylib (compatibility version 1.0.0, current version 41.0.0)
+	/usr/lib/swift/libswiftFileProvider.dylib (compatibility version 1.0.0, current version 1835.120.53, weak)
+	/usr/lib/swift/libswiftMetal.dylib (compatibility version 1.0.0, current version 343.19.0, weak)
+	/usr/lib/swift/libswiftOSLog.dylib (compatibility version 1.0.0, current version 4.0.0, weak)
+	/usr/lib/swift/libswiftObjectiveC.dylib (compatibility version 1.0.0, current version 8.0.0)
+	/usr/lib/swift/libswiftQuartzCore.dylib (compatibility version 1.0.0, current version 3.0.0, weak)
+	/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib (compatibility version 1.0.0, current version 794.2.3, weak)
+	/usr/lib/swift/libswiftXPC.dylib (compatibility version 1.0.0, current version 36.100.8, weak)
+	/usr/lib/swift/libswiftos.dylib (compatibility version 1.0.0, current version 1049.100.4)
+	/usr/lib/swift/libswiftsimd.dylib (compatibility version 1.0.0, current version 18.0.0, weak)
+	/usr/lib/swift/libswiftFoundation.dylib (compatibility version 1.0.0, current version 1.0.0)
+	/usr/lib/swift/libswiftUIKit.dylib (compatibility version 1.0.0, current version 1.0.0, weak)
+	/usr/lib/swift/libswiftNetwork.dylib (compatibility version 1.0.0, current version 1.0.0)
+Swift lib source dir: /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/usr/lib/swift/iphoneos
+  ⚠️ Not found: libswiftCore.dylib
+  ⚠️ Not found: libswiftCoreFoundation.dylib
+  ⚠️ Not found: libswiftFoundation.dylib
+  ⚠️ Not found: libswiftObjectiveC.dylib
+  ⚠️ Not found: libswiftSwiftOnoneSupport.dylib
+  ⚠️ Not found: libswiftDispatch.dylib
+  ⚠️ Not found: libswiftDarwin.dylib
+  ⚠️ Not found: libswiftMath.dylib
+  ⚠️ Not found: libswiftUIKit.dylib
+  ⚠️ Not found: libswiftCoreGraphics.dylib
+  ⚠️ Not found: libswiftQuartzCore.dylib
+=== Embedded 0 Swift libraries ===
+=== Frameworks directory contents ===
+total 0
+0s
+Run echo "=== App bundle AFTER Swift libs ==="
+  echo "=== App bundle AFTER Swift libs ==="
+  ls -laR build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/
+  echo -e "\n=== Total app bundle size ==="
+  du -sh build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/
+  shell: /bin/bash -e {0}
+=== App bundle AFTER Swift libs ===
+total 664
+drwxr-xr-x  7 runner  staff     224 Apr  1 19:09 .
+drwxr-xr-x  3 runner  staff      96 Apr  1 19:08 ..
+-rw-r--r--  1 runner  staff   22639 Apr  1 19:09 Assets.car
+drwxr-xr-x  2 runner  staff      64 Apr  1 19:09 Frameworks
+-rwxr-xr-x  1 runner  staff  305600 Apr  1 19:09 HeartFloat
+-rw-r--r--  1 runner  staff    1441 Apr  1 19:09 Info.plist
+-rw-r--r--  1 runner  staff       8 Apr  1 19:09 PkgInfo
+build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app//Frameworks:
+total 0
+drwxr-xr-x  2 runner  staff   64 Apr  1 19:09 .
+drwxr-xr-x  7 runner  staff  224 Apr  1 19:09 ..
+=== Total app bundle size ===
+332K	build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/
 0s
 Run APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/HeartFloat"
+  APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/HeartFloat"
+  BINARY_SIZE=$(stat -f%z "$APP_PATH")
+  echo "App binary size: $BINARY_SIZE bytes"
+  if [ "$BINARY_SIZE" -lt 10000 ]; then
+    echo "::warning::App binary seems too small ($BINARY_SIZE bytes)"
+  fi
   
+  FRAMEWORKS_DIR="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app/Frameworks"
+  if [ ! -d "$FRAMEWORKS_DIR" ] || [ -z "$(ls -A "$FRAMEWORKS_DIR" 2>/dev/null)" ]; then
+    echo "::error::Frameworks directory is empty or missing! IPA will be incomplete."
+    exit 1
+  fi
+  LIB_COUNT=$(ls -1 "$FRAMEWORKS_DIR"/*.dylib 2>/dev/null | wc -l | tr -d ' ')
+  echo "Embedded dylibs count: $LIB_COUNT"
+  shell: /bin/bash -e {0}
 App binary size: 305600 bytes
-0s
-Run rm -rf build/ipa
-Copying app bundle...
-Verifying copied app...
-total 664
-drwxr-xr-x  6 runner  staff     192 Apr  1 19:06 .
-drwxr-xr-x  3 runner  staff      96 Apr  1 19:06 ..
--rw-r--r--  1 runner  staff   22639 Apr  1 19:06 Assets.car
--rwxr-xr-x  1 runner  staff  305600 Apr  1 19:06 HeartFloat
--rw-r--r--  1 runner  staff    1441 Apr  1 19:06 Info.plist
--rw-r--r--  1 runner  staff       8 Apr  1 19:06 PkgInfo
-Creating IPA...
-  adding: Payload/ (stored 0%)
-  adding: Payload/HeartFloat.app/ (stored 0%)
-  adding: Payload/HeartFloat.app/Assets.car (deflated 96%)
-  adding: Payload/HeartFloat.app/HeartFloat (deflated 69%)
-  adding: Payload/HeartFloat.app/Info.plist (deflated 30%)
-  adding: Payload/HeartFloat.app/PkgInfo (stored 0%)
-IPA created:
--rw-r--r--  1 runner  staff    97K Apr  1 19:06 build/HeartFloat-unsigned.ipa
-1s
-Run mv build/HeartFloat-unsigned.ipa build/HeartFloat.ipa
-Final IPA:
--rw-r--r--  1 runner  staff    97K Apr  1 19:06 build/HeartFloat.ipa
-IPA contents:
-Archive:  build/HeartFloat.ipa
-  Length      Date    Time    Name
----------  ---------- -----   ----
-        0  04-01-2026 19:06   Payload/
-        0  04-01-2026 19:06   Payload/HeartFloat.app/
-    22639  04-01-2026 19:06   Payload/HeartFloat.app/Assets.car
-   305600  04-01-2026 19:06   Payload/HeartFloat.app/HeartFloat
-     1441  04-01-2026 19:06   Payload/HeartFloat.app/Info.plist
-        8  04-01-2026 19:06   Payload/HeartFloat.app/PkgInfo
----------                     -------
-   329688                     6 files
-1s
-Run actions/upload-artifact@v4
-  
-With the provided path, there will be 1 file uploaded
-Artifact name is valid!
-Root directory input is valid!
-Beginning upload of artifact content to blob storage
-Uploaded bytes 98543
-Finished uploading artifact content to blob storage!
-SHA256 digest of uploaded artifact zip is 7ac9af6d08529bcadb0729ac77c9077a83088f7d7a8d9c1f6d7f4d35d428cd27
-Finalizing artifact upload
-Artifact HeartFloat-unsigned-ipa.zip successfully finalized. Artifact ID 6227975180
-Artifact HeartFloat-unsigned-ipa has been successfully uploaded! Final size is 98543 bytes. Artifact ID is 6227975180
+Error: Frameworks directory is empty or missing! IPA will be incomplete.
+Error: Process completed with exit code 1.
