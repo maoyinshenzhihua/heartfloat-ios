@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import UIKit
 import AVFoundation
+import CoreImage
 
 class HeartRateVideoRenderer {
 
@@ -39,7 +40,7 @@ class HeartRateVideoRenderer {
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(
             assetWriterInput: input,
             sourcePixelBufferAttributes: [
-                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB,
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
                 kCVPixelBufferWidthKey as String: Int(videoSize.width),
                 kCVPixelBufferHeightKey as String: Int(videoSize.height)
             ]
@@ -54,7 +55,7 @@ class HeartRateVideoRenderer {
             while !input.isReadyForMoreMediaData {
                 Thread.sleep(forTimeInterval: 0.005)
             }
-            guard let buffer = createPixelBuffer(heartRate: heartRate, settings: settings) else { continue }
+            guard let buffer = createPixelBufferFromImage(heartRate: heartRate, settings: settings) else { continue }
             let time = CMTime(value: Int64(frameIndex), timescale: frameRate)
             adaptor.append(buffer, withPresentationTime: time)
         }
@@ -73,114 +74,115 @@ class HeartRateVideoRenderer {
         return nil
     }
 
-    private func createPixelBuffer(heartRate: Int, settings: SettingsManager) -> CVPixelBuffer? {
+    private func createPixelBufferFromImage(heartRate: Int, settings: SettingsManager) -> CVPixelBuffer? {
+        let image = renderHeartRateImage(heartRate: heartRate, settings: settings)
+        guard let cgImage = image.cgImage else { return nil }
+
         let attrs: [String: Any] = [
             kCVPixelBufferCGImageCompatibilityKey as String: true,
             kCVPixelBufferCGBitmapContextCompatibilityKey as String: true,
-            kCVPixelBufferWidthKey as String: Int(videoSize.width),
-            kCVPixelBufferHeightKey as String: Int(videoSize.height),
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB
+            kCVPixelBufferWidthKey as String: cgImage.width,
+            kCVPixelBufferHeightKey as String: cgImage.height,
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
         ]
 
-        var buffer: CVPixelBuffer?
-        CVPixelBufferCreate(kCFAllocatorDefault, Int(videoSize.width), Int(videoSize.height), kCVPixelFormatType_32ARGB, attrs as CFDictionary, &buffer)
-        guard let pixelBuffer = buffer else { return nil }
+        var pixelBuffer: CVPixelBuffer?
+        CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            cgImage.width,
+            cgImage.height,
+            kCVPixelFormatType_32BGRA,
+            attrs as CFDictionary,
+            &pixelBuffer
+        )
+        guard let buffer = pixelBuffer else { return nil }
 
-        CVPixelBufferLockBaseAddress(pixelBuffer, [])
-        guard let ctx = CGContext(
-            data: CVPixelBufferGetBaseAddress(pixelBuffer),
-            width: Int(videoSize.width),
-            height: Int(videoSize.height),
+        CVPixelBufferLockBaseAddress(buffer, [])
+        guard let context = CGContext(
+            data: CVPixelBufferGetBaseAddress(buffer),
+            width: cgImage.width,
+            height: cgImage.height,
             bitsPerComponent: 8,
-            bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
+            bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
             space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
         ) else {
-            CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+            CVPixelBufferUnlockBaseAddress(buffer, [])
             return nil
         }
 
-        drawFrame(ctx: ctx, heartRate: heartRate, settings: settings)
-
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-        return pixelBuffer
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
+        CVPixelBufferUnlockBaseAddress(buffer, [])
+        return buffer
     }
 
-    private func drawFrame(ctx: CGContext, heartRate: Int, settings: SettingsManager) {
-        let w = videoSize.width
-        let h = videoSize.height
-        let cornerRadius: CGFloat = 28
-        let bgOpacity = CGFloat(settings.backgroundOpacity) / 100.0
+    private func renderHeartRateImage(heartRate: Int, settings: SettingsManager) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: videoSize)
+        return renderer.image { ctx in
+            let w = videoSize.width
+            let h = videoSize.height
+            let cornerRadius: CGFloat = 28
+            let bgOpacity = CGFloat(settings.backgroundOpacity) / 100.0
 
-        ctx.setFillColor(UIColor.black.cgColor)
-        ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+            UIColor.black.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
 
-        ctx.setFillColor(UIColor.black.withAlphaComponent(bgOpacity).cgColor)
-        let bgPath = UIBezierPath(roundedRect: CGRect(x: 4, y: 4, width: w - 8, height: h - 8), cornerRadius: cornerRadius).cgPath
-        ctx.addPath(bgPath)
-        ctx.fillPath()
+            UIColor.black.withAlphaComponent(bgOpacity).setFill()
+            let bgPath = UIBezierPath(roundedRect: CGRect(x: 4, y: 4, width: w - 8, height: h - 8), cornerRadius: cornerRadius)
+            bgPath.fill()
 
-        let numberFont = UIFont.systemFont(ofSize: CGFloat(settings.bpmNumberSize) * 2.5, weight: .bold)
-        let labelFont = UIFont.systemFont(ofSize: CGFloat(settings.bpmLabelSize) * 2, weight: .medium)
-        let numberColor = UIColor(Color(hex: settings.bpmNumberColorHex))
-        let labelColor = UIColor(Color(hex: settings.bpmLabelColorHex))
+            let numberFont = UIFont.systemFont(ofSize: CGFloat(settings.bpmNumberSize) * 2.5, weight: .bold)
+            let labelFont = UIFont.systemFont(ofSize: CGFloat(settings.bpmLabelSize) * 2, weight: .medium)
+            let numberColor = UIColor(Color(hex: settings.bpmNumberColorHex))
+            let labelColor = UIColor(Color(hex: settings.bpmLabelColorHex))
 
-        let hrText = heartRate > 0 ? "\(heartRate)" : "--"
-        let labelText = "BPM"
+            let hrText = heartRate > 0 ? "\(heartRate)" : "--"
+            let labelText = "BPM"
 
-        let attrNumber: [NSAttributedString.Key: Any] = [
-            .font: numberFont,
-            .foregroundColor: numberColor
-        ]
-        let attrLabel: [NSAttributedString.Key: Any] = [
-            .font: labelFont,
-            .foregroundColor: labelColor
-        ]
+            let attrNumber: [NSAttributedString.Key: Any] = [
+                .font: numberFont,
+                .foregroundColor: numberColor
+            ]
+            let attrLabel: [NSAttributedString.Key: Any] = [
+                .font: labelFont,
+                .foregroundColor: labelColor
+            ]
 
-        let numberSize = (hrText as NSString).size(withAttributes: attrNumber)
-        let labelSize = (labelText as NSString).size(withAttributes: attrLabel)
-        let spacing: CGFloat = 8
-        let totalWidth: CGFloat
-        switch settings.bpmPosition {
-        case 0, 1:
-            totalWidth = max(numberSize.width, labelSize.width)
-        default:
-            totalWidth = numberSize.width + spacing + labelSize.width
+            let numberSize = (hrText as NSString).size(withAttributes: attrNumber)
+            let labelSize = (labelText as NSString).size(withAttributes: attrLabel)
+            let spacing: CGFloat = 8
+            let totalWidth: CGFloat
+            switch settings.bpmPosition {
+            case 0, 1:
+                totalWidth = max(numberSize.width, labelSize.width)
+            default:
+                totalWidth = numberSize.width + spacing + labelSize.width
+            }
+
+            let centerX = w / 2
+            let centerY = h / 2
+
+            switch settings.bpmPosition {
+            case 0:
+                let labelY = centerY - numberSize.height / 2 - labelSize.height - 4
+                (labelText as NSString).draw(at: CGPoint(x: centerX - labelSize.width / 2, y: labelY), withAttributes: attrLabel)
+                (hrText as NSString).draw(at: CGPoint(x: centerX - numberSize.width / 2, y: centerY - numberSize.height / 2), withAttributes: attrNumber)
+            case 1:
+                (hrText as NSString).draw(at: CGPoint(x: centerX - numberSize.width / 2, y: centerY - numberSize.height / 2), withAttributes: attrNumber)
+                let labelY = centerY + numberSize.height / 2 + 4
+                (labelText as NSString).draw(at: CGPoint(x: centerX - labelSize.width / 2, y: labelY), withAttributes: attrLabel)
+            case 2:
+                let startX = centerX - totalWidth / 2
+                (labelText as NSString).draw(at: CGPoint(x: startX, y: centerY - labelSize.height / 2), withAttributes: attrLabel)
+                (hrText as NSString).draw(at: CGPoint(x: startX + labelSize.width + spacing, y: centerY - numberSize.height / 2), withAttributes: attrNumber)
+            case 3:
+                let startX = centerX - totalWidth / 2
+                (hrText as NSString).draw(at: CGPoint(x: startX, y: centerY - numberSize.height / 2), withAttributes: attrNumber)
+                (labelText as NSString).draw(at: CGPoint(x: startX + numberSize.width + spacing, y: centerY - labelSize.height / 2), withAttributes: attrLabel)
+            default:
+                (hrText as NSString).draw(at: CGPoint(x: centerX - numberSize.width / 2, y: centerY - numberSize.height / 2), withAttributes: attrNumber)
+            }
         }
-
-        let centerX = w / 2
-        let centerY = h / 2
-
-        switch settings.bpmPosition {
-        case 0:
-            let labelY = centerY - numberSize.height / 2 - labelSize.height - 4
-            drawCenteredText(ctx: ctx, text: labelText, y: labelY, attributes: attrLabel, viewWidth: w)
-            drawCenteredText(ctx: ctx, text: hrText, y: centerY - numberSize.height / 2, attributes: attrNumber, viewWidth: w)
-        case 1:
-            drawCenteredText(ctx: ctx, text: hrText, y: centerY - numberSize.height / 2, attributes: attrNumber, viewWidth: w)
-            let labelY = centerY + numberSize.height / 2 + 4
-            drawCenteredText(ctx: ctx, text: labelText, y: labelY, attributes: attrLabel, viewWidth: w)
-        case 2:
-            let startX = centerX - totalWidth / 2
-            drawText(ctx: ctx, text: labelText, x: startX, y: centerY - labelSize.height / 2, attributes: attrLabel)
-            drawText(ctx: ctx, text: hrText, x: startX + labelSize.width + spacing, y: centerY - numberSize.height / 2, attributes: attrNumber)
-        case 3:
-            let startX = centerX - totalWidth / 2
-            drawText(ctx: ctx, text: hrText, x: startX, y: centerY - numberSize.height / 2, attributes: attrNumber)
-            drawText(ctx: ctx, text: labelText, x: startX + numberSize.width + spacing, y: centerY - labelSize.height / 2, attributes: attrLabel)
-        default:
-            drawCenteredText(ctx: ctx, text: hrText, y: centerY - numberSize.height / 2, attributes: attrNumber, viewWidth: w)
-        }
-    }
-
-    private func drawCenteredText(ctx: CGContext, text: String, y: CGFloat, attributes: [NSAttributedString.Key: Any], viewWidth: CGFloat) {
-        let size = (text as NSString).size(withAttributes: attributes)
-        let x = (viewWidth - size.width) / 2
-        drawText(ctx: ctx, text: text, x: x, y: y, attributes: attributes)
-    }
-
-    private func drawText(ctx: CGContext, text: String, x: CGFloat, y: CGFloat, attributes: [NSAttributedString.Key: Any]) {
-        NSAttributedString(string: text, attributes: attributes).draw(at: CGPoint(x: x, y: y))
     }
 
     private func cleanupOldFiles(keep keepURL: URL) {
