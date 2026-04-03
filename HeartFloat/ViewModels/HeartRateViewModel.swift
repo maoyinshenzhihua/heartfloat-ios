@@ -31,6 +31,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
     private var pendingRefreshWorkItem: DispatchWorkItem?
     private var isRefreshingVideo = false
     private var userRequestedStop = false
+    private var pipSessionActive = false
 
     override init() {
         super.init()
@@ -52,7 +53,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
             .sink { [weak self] rate in
                 self?.heartRate = rate
                 self?.httpServer.updateHeartRate(rate, contact: self?.isContact ?? false)
-                if self?.isPipActive == true {
+                if self?.pipSessionActive == true {
                     self?.schedulePipRefresh(heartRate: rate)
                 }
             }
@@ -75,7 +76,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
         settingsCancellable = settings.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard let self = self, self.isPipActive else { return }
+                guard let self = self, self.pipSessionActive else { return }
                 self.schedulePipRefresh(heartRate: self.heartRate)
             }
     }
@@ -89,7 +90,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
     }
 
     func togglePip() {
-        if isPipActive {
+        if pipSessionActive {
             stopPip()
         } else {
             startPip()
@@ -141,6 +142,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
         pipKvoObserver = nil
 
         isPipActive = false
+        pipSessionActive = false
         pipController?.delegate = nil
         pipController?.stopPictureInPicture()
         pipController = nil
@@ -172,7 +174,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
     }
 
     private func refreshPipVideo(heartRate: Int) {
-        guard isPipActive else { return }
+        guard pipSessionActive else { return }
         isRefreshingVideo = true
 
         addLog("更新心率视频...")
@@ -242,14 +244,14 @@ class HeartRateViewModel: NSObject, ObservableObject {
         pipLooper = looper
 
         let layer = AVPlayerLayer(player: qPlayer)
-        layer.frame = CGRect(x: 0, y: 0, width: 80, height: 80)
-        layer.backgroundColor = UIColor.black.cgColor
+        layer.frame = CGRect(x: 0, y: 0, width: 8, height: 8)
+        layer.backgroundColor = UIColor.clear.cgColor
         layer.videoGravity = .resizeAspectFill
 
-        let container = UIView(frame: CGRect(x: keyWindow.bounds.midX - 40, y: keyWindow.bounds.midY - 40, width: 80, height: 80))
-        container.backgroundColor = UIColor.black.withAlphaComponent(0.01)
+        let container = UIView(frame: CGRect(x: -10, y: -10, width: 8, height: 8))
+        container.backgroundColor = .clear
         container.clipsToBounds = true
-        container.layer.cornerRadius = 8
+        container.alpha = 0.01
         container.layer.addSublayer(layer)
         keyWindow.addSubview(container)
 
@@ -261,6 +263,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
         pipPlayerLayer = layer
         pipPlayerView = container
         pipController = controller
+        pipSessionActive = true
 
         qPlayer.play()
 
@@ -317,6 +320,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
         pipPlayerView = nil
         pipController = nil
         isPipActive = false
+        pipSessionActive = false
         restoreAudioSession()
     }
 
@@ -378,7 +382,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
 
 extension HeartRateViewModel: AVPictureInPictureControllerDelegate {
     func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        hidePlayerContainer()
+        hidePlayerCompletely()
         isPipActive = true
         addLog("画中画已启动 ✅")
     }
@@ -389,8 +393,8 @@ extension HeartRateViewModel: AVPictureInPictureControllerDelegate {
             return
         }
         isPipActive = false
-        addLog("系统暂停了画中画（非用户操作），播放器保持运行中")
-        showPlayerContainer()
+        addLog("系统暂停了画中画（切回前台），播放器保持运行中，心率继续更新")
+        hidePlayerCompletely()
     }
 
     func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
@@ -398,17 +402,9 @@ extension HeartRateViewModel: AVPictureInPictureControllerDelegate {
         cleanupPipResources()
     }
 
-    private func hidePlayerContainer() {
-        pipPlayerView?.alpha = 0
-        pipPlayerView?.frame = CGRect(x: -100, y: -100, width: 1, height: 1)
-    }
-
-    private func showPlayerContainer() {
-        guard let view = pipPlayerView, let window = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene }).first?.windows.first(where: { $0.isKeyWindow }) else { return }
-        view.alpha = 1
-        view.frame = CGRect(x: window.bounds.midX - 40, y: window.bounds.midY - 40, width: 80, height: 80)
-        window.addSubview(view)
-        window.bringSubviewToFront(view)
+    private func hidePlayerCompletely() {
+        guard let view = pipPlayerView else { return }
+        view.alpha = 0
+        view.frame = CGRect(x: -1000, y: -1000, width: 1, height: 1)
     }
 }

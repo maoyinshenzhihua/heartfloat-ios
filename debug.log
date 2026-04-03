@@ -164,4 +164,6 @@ Run APP_PATH="build/HeartFloat.xcarchive/Products/Applications/HeartFloat.app"
   fi
   shell: /bin/bash -e {0}
 Error: App binary not found
-Error: Process completed with exit code 1.
+Error: Process completed with exit code 1.[16652:4020:0403/080530.324:WARNING:t_skinfilemap.cpp(63)] SGRenderLog:CheckUpdate newMem.OpenMem Suc, szNewMem:Local\sgime_skin.v3.filemap.sogouime
+[16652:4020:0403/080530.324:WARNING:t_skinfilemap.cpp(65)] SGRenderLog:CheckUpdate finish: old version:1
+[16652:4020:0403/080530.324:WARNING:t_skinfilemap.cpp(67)] SGRenderLog:CheckUpdate finish: new version:3
