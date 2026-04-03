@@ -2,7 +2,6 @@ import Foundation
 import SwiftUI
 import UIKit
 import AVFoundation
-import CoreImage
 
 class HeartRateVideoRenderer {
 
@@ -40,7 +39,7 @@ class HeartRateVideoRenderer {
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(
             assetWriterInput: input,
             sourcePixelBufferAttributes: [
-                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB,
                 kCVPixelBufferWidthKey as String: Int(videoSize.width),
                 kCVPixelBufferHeightKey as String: Int(videoSize.height)
             ]
@@ -55,7 +54,7 @@ class HeartRateVideoRenderer {
             while !input.isReadyForMoreMediaData {
                 Thread.sleep(forTimeInterval: 0.005)
             }
-            guard let buffer = createPixelBufferFromImage(heartRate: heartRate, settings: settings) else { continue }
+            guard let buffer = createPixelBuffer(heartRate: heartRate, settings: settings) else { continue }
             let time = CMTime(value: Int64(frameIndex), timescale: frameRate)
             adaptor.append(buffer, withPresentationTime: time)
         }
@@ -74,45 +73,39 @@ class HeartRateVideoRenderer {
         return nil
     }
 
-    private func createPixelBufferFromImage(heartRate: Int, settings: SettingsManager) -> CVPixelBuffer? {
+    private func createPixelBuffer(heartRate: Int, settings: SettingsManager) -> CVPixelBuffer? {
         let image = renderHeartRateImage(heartRate: heartRate, settings: settings)
         guard let cgImage = image.cgImage else { return nil }
+
+        let width = cgImage.width
+        let height = cgImage.height
 
         let attrs: [String: Any] = [
             kCVPixelBufferCGImageCompatibilityKey as String: true,
             kCVPixelBufferCGBitmapContextCompatibilityKey as String: true,
-            kCVPixelBufferWidthKey as String: cgImage.width,
-            kCVPixelBufferHeightKey as String: cgImage.height,
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+            kCVPixelBufferWidthKey as String: width,
+            kCVPixelBufferHeightKey as String: height,
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB
         ]
 
         var pixelBuffer: CVPixelBuffer?
-        CVPixelBufferCreate(
-            kCFAllocatorDefault,
-            cgImage.width,
-            cgImage.height,
-            kCVPixelFormatType_32BGRA,
-            attrs as CFDictionary,
-            &pixelBuffer
-        )
+        CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFormatType_32ARGB, attrs as CFDictionary, &pixelBuffer)
         guard let buffer = pixelBuffer else { return nil }
 
         CVPixelBufferLockBaseAddress(buffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+
         guard let context = CGContext(
             data: CVPixelBufferGetBaseAddress(buffer),
-            width: cgImage.width,
-            height: cgImage.height,
+            width: width,
+            height: height,
             bitsPerComponent: 8,
             bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
             space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
-        ) else {
-            CVPixelBufferUnlockBaseAddress(buffer, [])
-            return nil
-        }
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
 
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
-        CVPixelBufferUnlockBaseAddress(buffer, [])
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
         return buffer
     }
 
