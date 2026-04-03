@@ -49,7 +49,7 @@ class HeartRateVideoRenderer {
         writer.startWriting()
         writer.startSession(atSourceTime: .zero)
 
-        let totalFrames = frameRate * 10
+        let totalFrames = frameRate * 2
         for frameIndex in 0..<totalFrames {
             while !input.isReadyForMoreMediaData {
                 Thread.sleep(forTimeInterval: 0.005)

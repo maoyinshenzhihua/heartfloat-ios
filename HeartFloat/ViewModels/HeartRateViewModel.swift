@@ -170,7 +170,7 @@ class HeartRateViewModel: NSObject, ObservableObject {
             self?.refreshPipVideo(heartRate: heartRate)
         }
         pendingRefreshWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: workItem)
     }
 
     private func refreshPipVideo(heartRate: Int) {
